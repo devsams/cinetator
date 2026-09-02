@@ -26,6 +26,37 @@ def _serialize_loc(l: Location) -> dict:
     }
 
 
+@router.get("/detected-locations/{project_id}")
+def detected_locations(project_id: str, session: Session = Depends(get_session)):
+    """Locations found in the breakdown, marked with whether they're already confirmed."""
+    project = session.get(Project, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found.")
+    breakdown = json.loads(project.breakdown_json or "{}")
+
+    details = {d.get("name"): d for d in (breakdown.get("location_details") or []) if d.get("name")}
+    names = list(breakdown.get("locations") or [])
+    for n in details:
+        if n not in names:
+            names.append(n)
+
+    confirmed = session.exec(select(Location).where(Location.project_id == project_id)).all()
+    confirmed_names = {(l.name or "").lower() for l in confirmed}
+
+    out = []
+    for n in names:
+        d = details.get(n, {})
+        out.append({
+            "name": n,
+            "address": d.get("address"),
+            "contact_name": d.get("contact_name"),
+            "contact_email": d.get("contact_email"),
+            "contact_phone": d.get("contact_phone"),
+            "confirmed": n.lower() in confirmed_names,
+        })
+    return out
+
+
 @router.get("/locations/{project_id}")
 def list_locations(project_id: str, session: Session = Depends(get_session)):
     locs = session.exec(select(Location).where(Location.project_id == project_id)).all()

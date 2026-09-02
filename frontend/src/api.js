@@ -82,3 +82,9 @@ export async function deleteLocation(locationId) {
   if (!res.ok) throw new Error("Failed to delete location");
   return res.json();
 }
+
+export async function detectedLocations(projectId) {
+  const res = await fetch(`${BASE}/api/plan/detected-locations/${projectId}`);
+  if (!res.ok) throw new Error("Failed to load detected locations");
+  return res.json();
+}

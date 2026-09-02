@@ -11,7 +11,8 @@ _client = genai.Client(vertexai=True, project=_PROJECT, location=_LOCATION)
 _MODEL = "gemini-2.5-flash"
 
 _PROMPT = """You are a film production breakdown assistant.
-Read the document below and extract a structured breakdown.
+Read the document below (it may be raw text extracted from a PDF, so tables and
+lines can be broken up awkwardly) and extract a structured breakdown.
 
 Return ONLY valid JSON (no markdown, no commentary) with this exact shape:
 {
@@ -19,12 +20,21 @@ Return ONLY valid JSON (no markdown, no commentary) with this exact shape:
   "estimated_shoot_days": integer,
   "characters": ["Character Name", ...],
   "locations": ["Location Name", ...],
+  "location_details": [
+    {
+      "name": "Location name",
+      "address": "address / city or null",
+      "contact_name": "on-site coordinator/manager or null",
+      "contact_email": "email or null",
+      "contact_phone": "phone or null"
+    }
+  ],
   "scenes": [
     {
       "number": "1",
       "int_ext": "INT" or "EXT",
       "location": "string",
-      "time_of_day": "DAY" or "NIGHT" or "string",
+      "time_of_day": "string",
       "cast": ["Character Name", ...],
       "props": ["prop", ...]
     }
@@ -33,26 +43,38 @@ Return ONLY valid JSON (no markdown, no commentary) with this exact shape:
     {
       "name": "Full Name",
       "role_type": "cast" or "crew" or "other",
-      "character": "Character or role label or null",
+      "character": "Character or job title or null",
       "email": "email or null",
       "phone": "phone or null"
     }
   ]
 }
 
-Rules:
-- characters = every named speaking/acting character across all scenes.
-- locations = every distinct filming location.
-- estimated_shoot_days = a realistic estimate based on scene count and locations.
-- people = ONLY real people explicitly listed in the document with their details
-  (e.g. a CAST or CREW list with names, roles, emails, phones). For each, capture
-  name, role_type, character/role, email, phone.
-  * Put actors under role_type "cast" (character = the role they play, if given).
-  * Put crew (DP, gaffer, sound, etc.) under role_type "crew" (character = their job title).
-  * Anyone else under "other".
-- CRITICAL: Never invent or guess emails or phone numbers. If a contact detail is
-  not present in the document, use null. If no people are explicitly listed with
-  details, return an empty "people" array.
+Extracting people:
+- If the document contains a cast/crew/production directory or contact table
+  (columns like ROLE, NAME, PHONE, EMAIL), extract EVERY listed person into "people".
+- role_type: actors -> "cast" (character = role played); crew (Director, DP/Camera,
+  Sound, Makeup Artist) -> "crew" (character = job title); anyone else -> "other".
+
+Extracting locations:
+- "locations" = simple list of distinct filming location names.
+- "location_details" = richer info for filming locations when the document lists them
+  (e.g. "Location 1: Tel Aviv Savidor Central Station" with a coordinator name, phone,
+  email). Include the on-site contact person if given. If only names are known, still
+  include each with address/contact fields as null.
+
+Repairing PDF extraction artifacts (CRITICAL - the text is messy):
+- Phone numbers are often split across lines, e.g. "+972" then "50-555-0199".
+  JOIN them into "+972 50-555-0199".
+- Emails are often split by a hyphen line break, e.g. "alex.miller@example-" then
+  "cast.com". JOIN into "alex.miller@examplecast.com" (remove the break and hyphen).
+- A single table row may span several lines; group fields correctly per entry.
+
+Other rules:
+- characters = named speaking characters in the scenes.
+- estimated_shoot_days = realistic estimate (doc may state it, e.g. "Two-Day").
+- NEVER invent emails or phone numbers. Missing detail = null. No people/locations
+  listed with detail = empty arrays.
 
 DOCUMENT:
 ---
@@ -67,7 +89,7 @@ def run_breakdown(script_text: str) -> dict:
         model=_MODEL,
         contents=prompt,
         config=types.GenerateContentConfig(
-            temperature=0.2,
+            temperature=0.1,
             response_mime_type="application/json",
         ),
     )

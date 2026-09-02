@@ -1,35 +1,46 @@
 import { useEffect, useState } from "react";
-import { listLocations, addLocation, researchLocation, deleteLocation } from "./api";
+import { listLocations, addLocation, researchLocation, deleteLocation, detectedLocations } from "./api";
 
 export default function Plan({ project }) {
   const projectId = project?.project_id;
+  const [detected, setDetected] = useState([]);
   const [locations, setLocations] = useState([]);
-  const [name, setName] = useState("");
-  const [address, setAddress] = useState("");
   const [busyId, setBusyId] = useState(null);
+  const [confirming, setConfirming] = useState(null);
+  const [error, setError] = useState("");
 
   async function refresh() {
     if (!projectId) return;
-    setLocations(await listLocations(projectId));
+    try {
+      const [det, locs] = await Promise.all([
+        detectedLocations(projectId),
+        listLocations(projectId),
+      ]);
+      setDetected(det);
+      setLocations(locs);
+    } catch (e) { setError(e.message); }
   }
   useEffect(() => { refresh(); }, [projectId]);
 
-  async function onAdd() {
-    if (!name.trim()) return;
-    await addLocation(projectId, name.trim(), address.trim() || null);
-    setName(""); setAddress("");
-    await refresh();
+  async function onConfirm(d) {
+    setConfirming(d.name); setError("");
+    try {
+      await addLocation(projectId, d.name, d.address || null);
+      await refresh();
+    } catch (e) { setError(e.message); }
+    finally { setConfirming(null); }
   }
 
   async function onResearch(id) {
-    setBusyId(id);
+    setBusyId(id); setError("");
     try { await researchLocation(id); await refresh(); }
+    catch (e) { setError(e.message); }
     finally { setBusyId(null); }
   }
 
   async function onDelete(id) {
-    await deleteLocation(id);
-    await refresh();
+    try { await deleteLocation(id); await refresh(); }
+    catch (e) { setError(e.message); }
   }
 
   if (!projectId) {
@@ -38,22 +49,47 @@ export default function Plan({ project }) {
     </div>;
   }
 
+  const unconfirmed = detected.filter((d) => !d.confirmed);
+
   return (
     <div style={{ display: "grid", gap: 24 }}>
       <section style={card}>
         <h2 style={{ margin: 0 }}>2 · Plan</h2>
         <p style={{ color: "#666", marginTop: 4 }}>
-          Start with locations. Research each one to pull real filming logistics —
-          hours, permits, and constraints — powered by Parallel.
+          Confirm the locations you'll actually shoot at, then research each one to
+          pull real filming logistics — hours, permits, and constraints — via Parallel.
         </p>
+        {error && <p style={{ color: "crimson" }}>{error}</p>}
 
-        <div style={{ display: "flex", gap: 8, marginTop: 8, flexWrap: "wrap" }}>
-          <input style={{ ...input, flex: 2, minWidth: 200 }} placeholder="Location name (e.g. Tel Aviv Savidor Central Station)"
-            value={name} onChange={(e) => setName(e.target.value)} />
-          <input style={{ ...input, flex: 1, minWidth: 140 }} placeholder="City / address (optional)"
-            value={address} onChange={(e) => setAddress(e.target.value)} />
-          <button style={button} onClick={onAdd}>+ Add location</button>
-        </div>
+        {unconfirmed.length > 0 && (
+          <div style={{ marginTop: 8 }}>
+            <div style={fieldLabel}>Detected in script</div>
+            {unconfirmed.map((d) => (
+              <div key={d.name} style={detRow}>
+                <div>
+                  <strong>{d.name}</strong>
+                  {d.address && <span style={{ color: "#888", fontSize: 13 }}> · {d.address}</span>}
+                  {d.contact_name && (
+                    <div style={{ color: "#888", fontSize: 12 }}>
+                      Contact: {d.contact_name}
+                      {d.contact_phone ? ` · ${d.contact_phone}` : ""}
+                      {d.contact_email ? ` · ${d.contact_email}` : ""}
+                    </div>
+                  )}
+                </div>
+                <button style={button} onClick={() => onConfirm(d)} disabled={confirming === d.name}>
+                  {confirming === d.name ? "Adding…" : "Confirm"}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        {unconfirmed.length === 0 && detected.length > 0 && (
+          <p style={{ color: "#aaa", fontSize: 13 }}>All detected locations confirmed.</p>
+        )}
+        {detected.length === 0 && (
+          <p style={{ color: "#aaa", fontSize: 13 }}>No locations detected in the script.</p>
+        )}
       </section>
 
       {locations.map((loc) => (
@@ -89,9 +125,7 @@ export default function Plan({ project }) {
               {loc.research.sources?.length > 0 && (
                 <div style={{ fontSize: 12, color: "#999" }}>
                   Sources: {loc.research.sources.slice(0, 3).map((s, i) => (
-                    <a key={i} href={s} target="_blank" rel="noreferrer" style={{ marginRight: 8, color: "#4a7" }}>
-                      [{i + 1}]
-                    </a>
+                    <a key={i} href={s} target="_blank" rel="noreferrer" style={{ marginRight: 8, color: "#4a7" }}>[{i + 1}]</a>
                   ))}
                 </div>
               )}
@@ -113,8 +147,8 @@ function Field({ label, value }) {
 }
 
 const card = { background: "#fff", border: "1px solid #eee", borderRadius: 12, padding: 20 };
-const input = { padding: 10, border: "1px solid #ddd", borderRadius: 8, fontSize: 14 };
-const button = { padding: "10px 16px", background: "#111", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 14 };
+const detRow = { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid #f2f2f2" };
+const button = { padding: "8px 16px", background: "#111", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 13 };
 const ghost = { padding: "8px 14px", background: "#fff", border: "1px solid #ddd", borderRadius: 8, cursor: "pointer", fontSize: 13 };
 const del = { border: "none", background: "none", color: "#c00", cursor: "pointer", fontSize: 14 };
-const fieldLabel = { fontSize: 12, fontWeight: 700, color: "#888", textTransform: "uppercase", letterSpacing: 0.4 };
+const fieldLabel = { fontSize: 12, fontWeight: 700, color: "#888", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 4 };
