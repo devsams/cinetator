@@ -1,0 +1,8 @@
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+sqlmodel==0.0.22
+python-multipart==0.0.9
+google-genai
+parallel-web
+python-dotenv==1.0.1
+pypdf==5.0.1
