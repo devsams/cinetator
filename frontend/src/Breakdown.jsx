@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { analyzeScript } from "./api";
+import People from "./People";
 
 export default function Breakdown({ project, setProject }) {
   const [title, setTitle] = useState("");
@@ -15,7 +16,7 @@ export default function Breakdown({ project, setProject }) {
     setError("");
     try {
       const result = await analyzeScript({ title, scriptText, file });
-      setProject(result); // { project_id, breakdown }
+      setProject(result);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -33,27 +34,17 @@ export default function Breakdown({ project, setProject }) {
         </p>
 
         <label style={label}>Production title</label>
-        <input
-          style={input}
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="e.g. The Echo Signal"
-        />
+        <input style={input} value={title} onChange={(e) => setTitle(e.target.value)}
+          placeholder="e.g. The Echo Signal" />
 
         <label style={label}>Paste script</label>
-        <textarea
-          style={{ ...input, minHeight: 160, fontFamily: "monospace" }}
-          value={scriptText}
-          onChange={(e) => setScriptText(e.target.value)}
-          placeholder="INT. COFFEE SHOP - DAY..."
-        />
+        <textarea style={{ ...input, minHeight: 160, fontFamily: "monospace" }}
+          value={scriptText} onChange={(e) => setScriptText(e.target.value)}
+          placeholder="INT. COFFEE SHOP - DAY..." />
 
         <label style={label}>...or upload a PDF / .txt</label>
-        <input
-          type="file"
-          accept=".pdf,.txt"
-          onChange={(e) => setFile(e.target.files[0] || null)}
-        />
+        <input type="file" accept=".pdf,.txt"
+          onChange={(e) => setFile(e.target.files[0] || null)} />
 
         <button style={button} onClick={onAnalyze} disabled={loading}>
           {loading ? "Analyzing..." : "Analyze script"}
@@ -64,23 +55,18 @@ export default function Breakdown({ project, setProject }) {
       {breakdown && (
         <section style={card}>
           <h3 style={{ marginTop: 0 }}>
-            Breakdown — {project.breakdown.title || project.title || "Untitled"}
+            Breakdown — {breakdown.title || project.title || "Untitled"}
           </h3>
           <p style={{ color: "#666" }}>
             {breakdown.characters?.length || 0} characters ·{" "}
             {breakdown.locations?.length || 0} locations ·{" "}
             est. {breakdown.estimated_shoot_days || "?"} shoot day(s)
           </p>
-
           <table style={table}>
             <thead>
               <tr>
-                <th style={th}>#</th>
-                <th style={th}>I/E</th>
-                <th style={th}>Location</th>
-                <th style={th}>Time</th>
-                <th style={th}>Cast</th>
-                <th style={th}>Props</th>
+                <th style={th}>#</th><th style={th}>I/E</th><th style={th}>Location</th>
+                <th style={th}>Time</th><th style={th}>Cast</th><th style={th}>Props</th>
               </tr>
             </thead>
             <tbody>
@@ -98,6 +84,8 @@ export default function Breakdown({ project, setProject }) {
           </table>
         </section>
       )}
+
+      {project && <People projectId={project.project_id} />}
     </div>
   );
 }

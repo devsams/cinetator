@@ -16,3 +16,41 @@ export async function analyzeScript({ title, scriptText, file }) {
   }
   return res.json();
 }
+
+export async function listPeople(projectId) {
+  const res = await fetch(`${BASE}/api/people/${projectId}`);
+  if (!res.ok) throw new Error("Failed to load people");
+  return res.json();
+}
+
+export async function seedCast(projectId) {
+  const res = await fetch(`${BASE}/api/people/seed-cast/${projectId}`, { method: "POST" });
+  if (!res.ok) throw new Error("Failed to seed cast");
+  return res.json();
+}
+
+export async function addPerson(person) {
+  const res = await fetch(`${BASE}/api/people`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(person),
+  });
+  if (!res.ok) throw new Error("Failed to add person");
+  return res.json();
+}
+
+export async function updatePerson(personId, patch) {
+  const res = await fetch(`${BASE}/api/people/${personId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(patch),
+  });
+  if (!res.ok) throw new Error("Failed to update person");
+  return res.json();
+}
+
+export async function deletePerson(personId) {
+  const res = await fetch(`${BASE}/api/people/${personId}`, { method: "DELETE" });
+  if (!res.ok) throw new Error("Failed to delete person");
+  return res.json();
+}

@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .db import init_db
-from .routes import breakdown
+from .routes import breakdown, people
 
 app = FastAPI(title="Cinetator API")
 
@@ -24,6 +24,7 @@ def health():
 
 
 app.include_router(breakdown.router)
+app.include_router(people.router)
 
 
 @app.get("/api/plan/ping")
