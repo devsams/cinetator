@@ -33,26 +33,29 @@ class Location(SQLModel, table=True):
     name: str
     address: Optional[str] = None
     research_json: Optional[str] = None
+    coordinator_person_id: Optional[str] = Field(default=None, foreign_key="person.id")
 
 
 class ShootDay(SQLModel, table=True):
     id: str = Field(default_factory=_uid, primary_key=True)
     project_id: str = Field(foreign_key="project.id")
     day_number: int
-    date: Optional[str] = None
     location_id: Optional[str] = Field(default=None, foreign_key="location.id")
+    candidate_dates: Optional[str] = None       # JSON list of up to 3 ISO dates
+    locked_date: Optional[str] = None           # final chosen date, or null
     call_time: Optional[str] = None
     scenes: Optional[str] = None
-    status: str = "planned"
+    status: str = "planning"                    # planning | locked
 
 
-class Assignment(SQLModel, table=True):
+class ScheduleResponse(SQLModel, table=True):
     id: str = Field(default_factory=_uid, primary_key=True)
     project_id: str = Field(foreign_key="project.id")
     person_id: str = Field(foreign_key="person.id")
     shoot_day_id: str = Field(foreign_key="shootday.id")
-    status: str = "pending"
-    alternate_dates: Optional[str] = None
+    picked_dates: Optional[str] = None          # JSON list of candidate dates they can do
+    suggested_dates: Optional[str] = None       # JSON list of alternates if none work
+    responded_at: Optional[datetime] = None
 
 
 class Event(SQLModel, table=True):

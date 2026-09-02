@@ -88,3 +88,57 @@ export async function detectedLocations(projectId) {
   if (!res.ok) throw new Error("Failed to load detected locations");
   return res.json();
 }
+
+export async function listDays(projectId) {
+  const res = await fetch(`${BASE}/api/schedule/days/${projectId}`);
+  if (!res.ok) throw new Error("Failed to load days");
+  return res.json();
+}
+
+export async function autoDays(projectId) {
+  const res = await fetch(`${BASE}/api/schedule/days/auto/${projectId}`, { method: "POST" });
+  if (!res.ok) throw new Error("Failed to auto-create days");
+  return res.json();
+}
+
+export async function addDay(projectId, dayNumber) {
+  const res = await fetch(`${BASE}/api/schedule/days`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ project_id: projectId, day_number: dayNumber, candidate_dates: [] }),
+  });
+  if (!res.ok) throw new Error("Failed to add day");
+  return res.json();
+}
+
+export async function updateDay(dayId, patch) {
+  const res = await fetch(`${BASE}/api/schedule/days/${dayId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(patch),
+  });
+  if (!res.ok) throw new Error("Failed to update day");
+  return res.json();
+}
+
+export async function deleteDay(dayId) {
+  const res = await fetch(`${BASE}/api/schedule/days/${dayId}`, { method: "DELETE" });
+  if (!res.ok) throw new Error("Failed to delete day");
+  return res.json();
+}
+
+export async function getLink(token) {
+  const res = await fetch(`${BASE}/api/link/${token}`);
+  if (!res.ok) throw new Error("Invalid or expired link");
+  return res.json();
+}
+
+export async function submitResponse(token, shootDayId, pickedDates, suggestedDates) {
+  const res = await fetch(`${BASE}/api/link/${token}/respond`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ shoot_day_id: shootDayId, picked_dates: pickedDates, suggested_dates: suggestedDates }),
+  });
+  if (!res.ok) throw new Error("Failed to submit");
+  return res.json();
+}

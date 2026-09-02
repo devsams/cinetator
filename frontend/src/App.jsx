@@ -1,8 +1,9 @@
 import { useState } from "react";
 import Breakdown from "./Breakdown";
 import Plan from "./Plan";
+import Schedule from "./Schedule";
 
-const TABS = ["Breakdown", "Plan", "Dashboard"];
+const TABS = ["Breakdown", "Plan", "Schedule", "Dashboard"];
 
 export default function App() {
   const [tab, setTab] = useState("Breakdown");
@@ -28,6 +29,7 @@ export default function App() {
       <main style={{ maxWidth: 900, margin: "24px auto", padding: "0 16px" }}>
         {tab === "Breakdown" && <Breakdown project={project} setProject={setProject} />}
         {tab === "Plan" && <Plan project={project} />}
+        {tab === "Schedule" && <Schedule project={project} />}
         {tab === "Dashboard" && <Placeholder name="Dashboard" project={project} />}
       </main>
     </div>
