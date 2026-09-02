@@ -54,3 +54,31 @@ export async function deletePerson(personId) {
   if (!res.ok) throw new Error("Failed to delete person");
   return res.json();
 }
+
+export async function listLocations(projectId) {
+  const res = await fetch(`${BASE}/api/plan/locations/${projectId}`);
+  if (!res.ok) throw new Error("Failed to load locations");
+  return res.json();
+}
+
+export async function addLocation(projectId, name, address) {
+  const res = await fetch(`${BASE}/api/plan/locations`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ project_id: projectId, name, address }),
+  });
+  if (!res.ok) throw new Error("Failed to add location");
+  return res.json();
+}
+
+export async function researchLocation(locationId) {
+  const res = await fetch(`${BASE}/api/plan/locations/${locationId}/research`, { method: "POST" });
+  if (!res.ok) throw new Error("Research failed");
+  return res.json();
+}
+
+export async function deleteLocation(locationId) {
+  const res = await fetch(`${BASE}/api/plan/locations/${locationId}`, { method: "DELETE" });
+  if (!res.ok) throw new Error("Failed to delete location");
+  return res.json();
+}

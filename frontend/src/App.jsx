@@ -1,11 +1,12 @@
 import { useState } from "react";
 import Breakdown from "./Breakdown";
+import Plan from "./Plan";
 
 const TABS = ["Breakdown", "Plan", "Dashboard"];
 
 export default function App() {
   const [tab, setTab] = useState("Breakdown");
-  const [project, setProject] = useState(null); // { project_id, breakdown }
+  const [project, setProject] = useState(null);
 
   return (
     <div style={{ fontFamily: "system-ui, sans-serif", background: "#fafafa", minHeight: "100vh" }}>
@@ -18,11 +19,7 @@ export default function App() {
 
       <nav style={nav}>
         {TABS.map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            style={{ ...tabBtn, ...(tab === t ? tabActive : {}) }}
-          >
+          <button key={t} onClick={() => setTab(t)} style={{ ...tabBtn, ...(tab === t ? tabActive : {}) }}>
             {t}
           </button>
         ))}
@@ -30,7 +27,7 @@ export default function App() {
 
       <main style={{ maxWidth: 900, margin: "24px auto", padding: "0 16px" }}>
         {tab === "Breakdown" && <Breakdown project={project} setProject={setProject} />}
-        {tab === "Plan" && <Placeholder name="Plan" project={project} />}
+        {tab === "Plan" && <Plan project={project} />}
         {tab === "Dashboard" && <Placeholder name="Dashboard" project={project} />}
       </main>
     </div>
