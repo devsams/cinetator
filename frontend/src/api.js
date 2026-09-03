@@ -200,3 +200,39 @@ export async function getResponses(projectId) {
   if (!res.ok) throw new Error("Failed to load responses");
   return res.json();
 }
+
+export async function getActivity(projectId) {
+  const res = await fetch(`${BASE}/api/schedule/activity/${projectId}`);
+  if (!res.ok) throw new Error("Failed to load activity");
+  return res.json();
+}
+
+export async function remindPeople(projectId, personIds) {
+  const res = await fetch(`${BASE}/api/schedule/remind`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ project_id: projectId, person_ids: personIds }),
+  });
+  if (!res.ok) throw new Error("Failed to send reminders");
+  return res.json();
+}
+
+export async function markStatus(projectId, personId, shootDayId, date) {
+  const res = await fetch(`${BASE}/api/schedule/mark-status`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ project_id: projectId, person_id: personId, shoot_day_id: shootDayId, date }),
+  });
+  if (!res.ok) throw new Error("Failed to mark status");
+  return res.json();
+}
+
+export async function addCandidate(dayId, date) {
+  const res = await fetch(`${BASE}/api/schedule/days/${dayId}/add-candidate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ date }),
+  });
+  if (!res.ok) throw new Error("Failed to add candidate date");
+  return res.json();
+}

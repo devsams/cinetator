@@ -408,3 +408,123 @@ def response_roster(project_id: str, session: Session = Depends(get_session)):
             "rows": rows,
         })
     return out
+
+
+# ---------- Dashboard actions ----------
+DEFAULT_REMINDER = (
+    "Hi {name},\n\nA quick reminder — we still need your availability to lock the "
+    "shoot dates for our production.\n\nShoot days and candidate dates:\n{days}\n\n"
+    "Please open your personal link and let us know which dates work (or suggest "
+    "alternates):\n{link}\n\nThanks!\nThe Production Team"
+)
+
+
+class RemindIn(BaseModel):
+    project_id: str
+    person_ids: List[str]                 # who to remind
+    subject: Optional[str] = "Reminder: please confirm your shoot dates"
+    template: Optional[str] = None        # optional custom text
+
+
+@router.post("/remind")
+def remind(body: RemindIn, session: Session = Depends(get_session)):
+    project = session.get(Project, body.project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found.")
+    days_text = _days_text_for(session, body.project_id)
+    people = {p.id: p for p in session.exec(select(Person).where(Person.project_id == body.project_id)).all()}
+    tmpl = body.template or DEFAULT_REMINDER
+    sent, skipped = [], []
+    for pid in body.person_ids:
+        p = people.get(pid)
+        if not p:
+            continue
+        if not p.email:
+            skipped.append({"name": p.name, "reason": "no email"}); continue
+        link = f"{APP_BASE_URL}/shoot/{p.token}"
+        msg = tmpl.replace("{name}", p.name).replace("{link}", link).replace("{days}", days_text)
+        try:
+            send_email(p.email, body.subject, msg)
+            session.add(Event(project_id=body.project_id, type="reminder-sent", person_id=p.id))
+            sent.append({"name": p.name})
+        except Exception as e:
+            skipped.append({"name": p.name, "reason": str(e)})
+    session.commit()
+    return {"sent": sent, "skipped": skipped}
+
+
+class MarkIn(BaseModel):
+    project_id: str
+    person_id: str
+    shoot_day_id: str
+    date: Optional[str] = None            # date to mark them available for (defaults to locked/first candidate)
+
+
+@router.post("/mark-status")
+def mark_status(body: MarkIn, session: Session = Depends(get_session)):
+    """Coordinator manually records that a person can do a date (heard offline)."""
+    day = session.get(ShootDay, body.shoot_day_id)
+    if not day:
+        raise HTTPException(status_code=404, detail="Shoot day not found.")
+    date = body.date or day.locked_date or (_loads(day.candidate_dates)[:1] or [None])[0]
+    if not date:
+        raise HTTPException(status_code=400, detail="No date to mark.")
+    existing = session.exec(
+        select(ScheduleResponse).where(
+            ScheduleResponse.person_id == body.person_id,
+            ScheduleResponse.shoot_day_id == body.shoot_day_id,
+        )
+    ).first()
+    picked = [date]
+    if existing:
+        cur = set(_loads(existing.picked_dates)); cur.add(date)
+        existing.picked_dates = json.dumps(sorted(cur))
+        existing.responded_at = datetime.utcnow()
+    else:
+        session.add(ScheduleResponse(
+            project_id=body.project_id, person_id=body.person_id,
+            shoot_day_id=body.shoot_day_id, picked_dates=json.dumps(picked),
+            suggested_dates=json.dumps([]), responded_at=datetime.utcnow(),
+        ))
+    session.add(Event(project_id=body.project_id, type="marked-available",
+                      person_id=body.person_id, shoot_day_id=body.shoot_day_id,
+                      payload=json.dumps({"date": date})))
+    session.commit()
+    return {"ok": True, "date": date}
+
+
+class AddCandidateIn(BaseModel):
+    date: str
+
+
+@router.post("/days/{day_id}/add-candidate")
+def add_candidate(day_id: str, body: AddCandidateIn, session: Session = Depends(get_session)):
+    d = session.get(ShootDay, day_id)
+    if not d:
+        raise HTTPException(status_code=404, detail="Shoot day not found.")
+    cds = _loads(d.candidate_dates)
+    if body.date not in cds:
+        cds.append(body.date)
+        d.candidate_dates = json.dumps(cds[:5])   # allow a few extra when promoting alternates
+        session.add(d)
+        session.add(Event(project_id=d.project_id, type="candidate-added",
+                          shoot_day_id=d.id, payload=json.dumps({"date": body.date})))
+        session.commit()
+    return {"shoot_day_id": d.id, "candidate_dates": _loads(d.candidate_dates)}
+
+
+@router.get("/activity/{project_id}")
+def activity(project_id: str, session: Session = Depends(get_session)):
+    evs = session.exec(
+        select(Event).where(Event.project_id == project_id).order_by(Event.created_at.desc())
+    ).all()
+    people = {p.id: p for p in session.exec(select(Person).where(Person.project_id == project_id)).all()}
+    out = []
+    for e in evs[:30]:
+        nm = people[e.person_id].name if e.person_id and e.person_id in people else None
+        payload = json.loads(e.payload) if e.payload else {}
+        out.append({
+            "type": e.type, "name": nm, "payload": payload,
+            "at": e.created_at.isoformat() if e.created_at else None,
+        })
+    return out
