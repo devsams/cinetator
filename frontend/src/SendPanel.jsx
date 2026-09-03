@@ -66,7 +66,7 @@ export default function SendPanel({ projectId }) {
   return (
     <section style={card}>
       <h3 style={{ marginTop: 0 }}>Send availability requests</h3>
-      <p style={{ color: "#666", marginTop: 4 }}>
+      <p style={{ color: "#b6b9c0", marginTop: 4 }}>
         Pick who to contact, edit the message, and send. Each person's name and
         personal link are filled in automatically.
       </p>
@@ -85,7 +85,7 @@ export default function SendPanel({ projectId }) {
                   <input type="checkbox" checked={!!selected[p.id]} disabled={!p.email}
                     onChange={() => toggle(p.id)} />
                   <span>{p.name}</span>
-                  <span style={{ color: "#999", fontSize: 12 }}>
+                  <span style={{ color: "#74777f", fontSize: 12 }}>
                     {p.email || "no email — add one in Breakdown"}
                   </span>
                 </label>
@@ -105,7 +105,7 @@ export default function SendPanel({ projectId }) {
         <div style={fieldLabel}>Message (uses {"{name}"}, {"{days}"}, {"{link}"})</div>
         <textarea style={{ ...input, minHeight: 200, fontFamily: "inherit" }}
           value={template} onChange={(e) => setTemplate(e.target.value)} />
-        <div style={{ fontSize: 12, color: "#999", marginTop: 4 }}>
+        <div style={{ fontSize: 12, color: "#74777f", marginTop: 4 }}>
           Preview of {"{days}"}: <span style={{ whiteSpace: "pre-wrap" }}>{daysText || "no days set"}</span>
         </div>
       </div>
@@ -128,9 +128,9 @@ export default function SendPanel({ projectId }) {
   );
 }
 
-const card = { background: "#fff", border: "1px solid #eee", borderRadius: 12, padding: 20, marginTop: 24 };
-const row = { display: "flex", alignItems: "center", gap: 8, padding: "6px 0", borderBottom: "1px solid #f5f5f5" };
-const input = { width: "100%", padding: 10, border: "1px solid #ddd", borderRadius: 8, fontSize: 14 };
-const button = { marginTop: 16, padding: "10px 16px", background: "#111", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 14 };
-const ghost = { padding: "6px 10px", background: "#fff", border: "1px solid #ddd", borderRadius: 8, cursor: "pointer", fontSize: 12 };
-const fieldLabel = { fontSize: 12, fontWeight: 700, color: "#888", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 4 };
+const card = { background: "#161618", border: "1px solid #2a2a2e", borderRadius: 12, padding: 20, marginTop: 24 };
+const row = { display: "flex", alignItems: "center", gap: 8, padding: "6px 0", borderBottom: "1px solid #2a2a2e" };
+const input = { width: "100%", padding: 10, border: "1px solid #35353b", borderRadius: 8, fontSize: 14 };
+const button = { marginTop: 16, padding: "10px 16px", background: "#f5c518", color: "#0d0d0e", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 14 };
+const ghost = { padding: "6px 10px", background: "#161618", border: "1px solid #35353b", borderRadius: 8, cursor: "pointer", fontSize: 12 };
+const fieldLabel = { fontSize: 12, fontWeight: 700, color: "#74777f", textTransform: "uppercase", letterSpacing: 0.4, marginBottom: 4 };

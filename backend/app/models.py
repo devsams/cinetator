@@ -13,6 +13,8 @@ class Project(SQLModel, table=True):
     title: str
     script_text: Optional[str] = None
     breakdown_json: Optional[str] = None
+    status: str = "in_progress"   # in_progress | live | archived
+    production_company: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
@@ -46,6 +48,10 @@ class ShootDay(SQLModel, table=True):
     call_time: Optional[str] = None
     scenes: Optional[str] = None
     status: str = "planning"                    # planning | locked
+    crew_calls: Optional[str] = None             # JSON list of {dept, time}
+    weather: Optional[str] = None
+    sunrise: Optional[str] = None
+    sunset: Optional[str] = None
 
 
 class ScheduleResponse(SQLModel, table=True):
@@ -66,3 +72,30 @@ class Event(SQLModel, table=True):
     shoot_day_id: Optional[str] = None
     payload: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class ChatSession(SQLModel, table=True):
+    id: str = Field(default_factory=_uid, primary_key=True)
+    project_id: str = Field(foreign_key="project.id")
+    title: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class ChatMessage(SQLModel, table=True):
+    id: str = Field(default_factory=_uid, primary_key=True)
+    session_id: str = Field(foreign_key="chatsession.id")
+    role: str            # user | assistant
+    text: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class Strip(SQLModel, table=True):
+    id: str = Field(default_factory=_uid, primary_key=True)
+    project_id: str = Field(foreign_key="project.id")
+    shoot_day_id: str = Field(foreign_key="shootday.id")
+    order_index: int = 0
+    type: str = "scene"           # scene | special
+    scene_number: Optional[str] = None   # references breakdown.scenes[].number
+    label: Optional[str] = None          # for special strips: Crew Call / Company Move / Lunch Break / Wrap
+    duration_mins: int = 30

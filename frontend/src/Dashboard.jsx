@@ -33,7 +33,7 @@ export default function Dashboard({ project }) {
   const confirmSend = (m) => window.confirm(m);
 
   if (!projectId) return (
-    <div style={{ color: "#9096a1", textAlign: "center", padding: 70 }}>
+    <div style={{ color: "#74777f", textAlign: "center", padding: 70 }}>
       <h2>Dashboard</h2><p>Analyze a script and set up your schedule first.</p>
     </div>
   );
@@ -71,7 +71,7 @@ export default function Dashboard({ project }) {
           <h1 style={{ margin: "0 0 3px", fontSize: 20, letterSpacing: "-.02em" }}>
             {project.breakdown?.title || "Your production"}
           </h1>
-          <div style={{ color: "#5a616c", fontSize: 14, marginTop: 6 }}>{statusLine}</div>
+          <div style={{ color: "#b6b9c0", fontSize: 14, marginTop: 6 }}>{statusLine}</div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 22 }}>
           <div style={{ display: "flex", gap: 26 }}>
@@ -87,7 +87,7 @@ export default function Dashboard({ project }) {
             </svg>
             <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
               <div style={{ fontSize: 22, fontWeight: 750 }}>{lockPct}%</div>
-              <div style={{ fontSize: 10, color: "#9096a1", textTransform: "uppercase", letterSpacing: .5 }}>locked</div>
+              <div style={{ fontSize: 10, color: "#74777f", textTransform: "uppercase", letterSpacing: .5 }}>locked</div>
             </div>
           </div>
         </div>
@@ -102,7 +102,7 @@ export default function Dashboard({ project }) {
           {attention.map((a, i) => (
             <div key={i} style={{ ...attn, borderTop: i ? "1px solid #ecedf1" : "none" }}>
               {a.kind === "loc" && <>
-                <div style={{ ...ic, background: "#fdecec" }}>🔒</div>
+                <div style={{ ...ic, background: "#2a1414" }}>🔒</div>
                 <div style={{ flex: 1, fontSize: 13.5 }}>Day {a.day.day_number} can't lock yet
                   <div style={sub}>Location {a.day.coordinator_name} hasn't confirmed a date.</div>
                 </div>
@@ -112,14 +112,14 @@ export default function Dashboard({ project }) {
                 }}>Remind {a.day.coordinator_name?.split(" ")[0]}</button>
               </>}
               {a.kind === "alt" && <>
-                <div style={{ ...ic, background: "#fdf4e4" }}>↩</div>
+                <div style={{ ...ic, background: "#2a2410" }}>↩</div>
                 <div style={{ flex: 1, fontSize: 13.5 }}>{a.by} suggested {a.date} for Day {a.day.day_number}
                   <div style={sub}>Turn it into a candidate date for everyone.</div>
                 </div>
                 <button style={btnSoftBlueTiny} onClick={() => act("ac"+i, () => addCandidate(a.day.shoot_day_id, a.date))}>Add {a.date}</button>
               </>}
               {a.kind === "pending" && <>
-                <div style={{ ...ic, background: "#eaf1ff" }}>⏳</div>
+                <div style={{ ...ic, background: "#2a2410" }}>⏳</div>
                 <div style={{ flex: 1, fontSize: 13.5 }}>{pendingIds.length} people haven't responded
                   <div style={sub}>Send a one-click reminder to everyone still pending.</div>
                 </div>
@@ -151,7 +151,7 @@ export default function Dashboard({ project }) {
                 <div style={{ ...daynum, ...(d.locked_date ? { background: "#0ca750", color: "#fff" } : {}) }}>{d.day_number}</div>
                 <div>
                   <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: "-.01em" }}>{d.location_name || "No location set"}</div>
-                  {d.coordinator_name && <div style={{ color: "#9096a1", fontSize: 12.5, marginTop: 2 }}>Coordinator: {d.coordinator_name}</div>}
+                  {d.coordinator_name && <div style={{ color: "#74777f", fontSize: 12.5, marginTop: 2 }}>Coordinator: {d.coordinator_name}</div>}
                 </div>
               </div>
               {d.locked_date ? (
@@ -165,7 +165,7 @@ export default function Dashboard({ project }) {
             <div style={{ padding: "4px 22px 20px" }}>
               {!d.locked_date && (
                 <div style={opts}>
-                  {d.tally.length === 0 && <div style={{ color: "#aaa", fontSize: 13, padding: "8px 0" }}>No candidate dates set. Add them in the Schedule tab.</div>}
+                  {d.tally.length === 0 && <div style={{ color: "#74777f", fontSize: 13, padding: "8px 0" }}>No candidate dates set. Add them in the Schedule tab.</div>}
                   {d.tally.map((t) => {
                     const best = t.date === d.recommended_date;
                     const bad = t.location_available === false;
@@ -177,7 +177,7 @@ export default function Dashboard({ project }) {
                           {t.date}{best && <span style={tag}>BEST</span>}
                         </div>
                         <div style={avbar}><i style={{ display: "block", height: "100%", background: "#0ca750", borderRadius: 999, width: `${Math.round(t.available_count / totalP * 100)}%` }} /></div>
-                        <div style={{ fontSize: 11.5, color: "#5a616c", display: "flex", justifyContent: "space-between" }}>
+                        <div style={{ fontSize: 11.5, color: "#b6b9c0", display: "flex", justifyContent: "space-between" }}>
                           <span>{t.available_count} of {rows.length} available</span>
                           {t.location_available === true && <span style={{ color: "#0ca750", fontWeight: 600 }}>location ✓</span>}
                           {bad && <span style={{ color: "#e5484d", fontWeight: 600 }}>location ✕</span>}
@@ -207,7 +207,7 @@ export default function Dashboard({ project }) {
                       <span style={{ ...av, background: colorFor(row.person_id) }}>{initials(row.name)}</span>
                       <span style={{ ...stDot, background: stColor }} />
                       <span style={{ fontWeight: 550 }}>{row.name}</span>
-                      <span style={{ color: "#9096a1", fontSize: 10.5 }}>{roleTxt}</span>
+                      <span style={{ color: "#74777f", fontSize: 10.5 }}>{roleTxt}</span>
                       {!row.responded && (
                         <span style={miniAct} onClick={() => {
                           if (confirmSend(`Remind ${row.name}?`)) act("r"+row.person_id+d.shoot_day_id, () => remindPeople(projectId, [row.person_id]));
@@ -220,8 +220,8 @@ export default function Dashboard({ project }) {
             </div>
 
             <div style={dayFoot}>
-              <div style={{ fontSize: 12.5, color: "#5a616c" }}>
-                <b style={{ color: "#14161a" }}>{confirmed} of {rows.length}</b> available · {pending} pending{declined ? ` · ${declined} declined` : ""}
+              <div style={{ fontSize: 12.5, color: "#b6b9c0" }}>
+                <b style={{ color: "#ffffff" }}>{confirmed} of {rows.length}</b> available · {pending} pending{declined ? ` · ${declined} declined` : ""}
               </div>
               {pending > 0 && (
                 <button style={btnSoftBlueTiny} onClick={() => {
@@ -237,12 +237,12 @@ export default function Dashboard({ project }) {
       {/* ACTIVITY */}
       <div style={feedcard}>
         <h3 style={{ margin: "0 0 14px", fontSize: 14, letterSpacing: "-.01em" }}>Recent activity</h3>
-        {activity.length === 0 && <p style={{ color: "#9096a1", fontSize: 13 }}>No activity yet.</p>}
+        {activity.length === 0 && <p style={{ color: "#74777f", fontSize: 13 }}>No activity yet.</p>}
         {activity.map((e, i) => (
           <div key={i} style={{ ...ev, borderBottom: i === activity.length - 1 ? "none" : "1px solid #ecedf1" }}>
             <span style={{ ...fdot, background: feedColor(e.type) }} />
             <span>{describe(e)}</span>
-            <span style={{ color: "#9096a1", fontSize: 11, marginLeft: "auto", whiteSpace: "nowrap" }}>{fmt(e.at)}</span>
+            <span style={{ color: "#74777f", fontSize: 11, marginLeft: "auto", whiteSpace: "nowrap" }}>{fmt(e.at)}</span>
           </div>
         ))}
       </div>
@@ -252,7 +252,7 @@ export default function Dashboard({ project }) {
 
 function Mini({ n, l, color }) {
   return <div><div style={{ fontSize: 20, fontWeight: 700, color: color || "#14161a" }}>{n}</div>
-    <div style={{ fontSize: 11, color: "#9096a1", textTransform: "uppercase", letterSpacing: .4, marginTop: 1 }}>{l}</div></div>;
+    <div style={{ fontSize: 11, color: "#74777f", textTransform: "uppercase", letterSpacing: .4, marginTop: 1 }}>{l}</div></div>;
 }
 function fmt(iso){ if(!iso) return ""; const d=new Date(iso+"Z"); const m=Math.round((Date.now()-d)/60000);
   if(m<1)return"just now"; if(m<60)return m+"m ago"; const h=Math.round(m/60); if(h<24)return h+"h ago"; return d.toLocaleDateString(); }

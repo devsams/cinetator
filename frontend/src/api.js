@@ -1,10 +1,11 @@
-const BASE = "http://localhost:8000";
+const BASE = "https://cinetator-backend-844278617352.us-central1.run.app";
 
-export async function analyzeScript({ title, scriptText, file }) {
+export async function analyzeScript({ title, scriptText, file, projectId }) {
   const form = new FormData();
   form.append("title", title || "Untitled Production");
   if (scriptText) form.append("script_text", scriptText);
   if (file) form.append("file", file);
+  if (projectId) form.append("project_id", projectId);
 
   const res = await fetch(`${BASE}/api/breakdown/analyze`, {
     method: "POST",
@@ -234,5 +235,152 @@ export async function addCandidate(dayId, date) {
     body: JSON.stringify({ date }),
   });
   if (!res.ok) throw new Error("Failed to add candidate date");
+  return res.json();
+}
+
+export async function listProjects() {
+  const res = await fetch(`${BASE}/api/projects`);
+  if (!res.ok) throw new Error("Failed to load projects");
+  return res.json();
+}
+
+export async function createProject(title) {
+  const res = await fetch(`${BASE}/api/projects`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ title: title || "Untitled Production" }),
+  });
+  if (!res.ok) throw new Error("Failed to create project");
+  return res.json();
+}
+
+export async function setProjectStatus(projectId, status) {
+  const res = await fetch(`${BASE}/api/projects/${projectId}/status`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status }),
+  });
+  if (!res.ok) throw new Error("Failed to update status");
+  return res.json();
+}
+
+export async function deleteProject(projectId) {
+  const res = await fetch(`${BASE}/api/projects/${projectId}`, { method: "DELETE" });
+  if (!res.ok) throw new Error("Failed to delete project");
+  return res.json();
+}
+
+export async function getProject(projectId) {
+  const res = await fetch(`${BASE}/api/projects/${projectId}`);
+  if (!res.ok) throw new Error("Failed to load project");
+  return res.json();
+}
+
+
+
+
+
+export async function listChatSessions(projectId) {
+  const res = await fetch(`${BASE}/api/chat/sessions/${projectId}`);
+  if (!res.ok) throw new Error("Failed to load chat history");
+  return res.json();
+}
+export async function newChatSession(projectId) {
+  const res = await fetch(`${BASE}/api/chat/sessions/${projectId}`, { method: "POST" });
+  if (!res.ok) throw new Error("Failed to start new chat");
+  return res.json();
+}
+export async function getChatMessages(projectId, sessionId) {
+  const res = await fetch(`${BASE}/api/chat/sessions/${projectId}/${sessionId}/messages`);
+  if (!res.ok) throw new Error("Failed to load messages");
+  return res.json();
+}
+export async function sendChat(projectId, sessionId, message) {
+  const res = await fetch(`${BASE}/api/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ project_id: projectId, session_id: sessionId, message }),
+  });
+  if (!res.ok) { const err = await res.text(); throw new Error(err || "Chat failed"); }
+  return res.json();
+}
+export async function executeChatAction(projectId, name, args) {
+  const res = await fetch(`${BASE}/api/chat/execute`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ project_id: projectId, name, args }),
+  });
+  if (!res.ok) { const err = await res.text(); throw new Error(err || "Action failed"); }
+  return res.json();
+}
+
+// ---- Stripboard ----
+export async function listStrips(shootDayId) {
+  const res = await fetch(`${BASE}/api/stripboard/${shootDayId}`);
+  if (!res.ok) throw new Error("Failed to load strips");
+  return res.json();
+}
+export async function autoPopulateStrips(shootDayId) {
+  const res = await fetch(`${BASE}/api/stripboard/${shootDayId}/auto-populate`, { method: "POST" });
+  if (!res.ok) throw new Error("Failed to auto-populate");
+  return res.json();
+}
+export async function addStrip(shootDayId, projectId, body) {
+  const res = await fetch(`${BASE}/api/stripboard/${shootDayId}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ project_id: projectId, ...body }),
+  });
+  if (!res.ok) throw new Error("Failed to add strip");
+  return res.json();
+}
+export async function updateStrip(stripId, patch) {
+  const res = await fetch(`${BASE}/api/stripboard/strips/${stripId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(patch),
+  });
+  if (!res.ok) throw new Error("Failed to update strip");
+  return res.json();
+}
+export async function deleteStrip(stripId) {
+  const res = await fetch(`${BASE}/api/stripboard/strips/${stripId}`, { method: "DELETE" });
+  if (!res.ok) throw new Error("Failed to delete strip");
+  return res.json();
+}
+export async function reorderStrips(shootDayId, orderedIds) {
+  const res = await fetch(`${BASE}/api/stripboard/${shootDayId}/reorder`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ordered_ids: orderedIds }),
+  });
+  if (!res.ok) throw new Error("Failed to reorder");
+  return res.json();
+}
+export async function setCrewCalls(shootDayId, crewCalls) {
+  const res = await fetch(`${BASE}/api/stripboard/${shootDayId}/crew-calls`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ crew_calls: crewCalls }),
+  });
+  if (!res.ok) throw new Error("Failed to set crew calls");
+  return res.json();
+}
+export async function setDayMeta(shootDayId, meta) {
+  const res = await fetch(`${BASE}/api/stripboard/${shootDayId}/meta`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(meta),
+  });
+  if (!res.ok) throw new Error("Failed to set day meta");
+  return res.json();
+}
+export async function setCompany(projectId, company) {
+  const res = await fetch(`${BASE}/api/projects/${projectId}/company`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ production_company: company }),
+  });
+  if (!res.ok) throw new Error("Failed to set company");
   return res.json();
 }

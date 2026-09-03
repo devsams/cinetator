@@ -28,7 +28,7 @@ export default function Schedule({ project }) {
   async function onDeleteDay(dayId) { await deleteDay(dayId); await refresh(); }
 
   if (!projectId) {
-    return <div style={{ color: "#888", textAlign: "center", padding: 60 }}>
+    return <div style={{ color: "#74777f", textAlign: "center", padding: 60 }}>
       <h2>Schedule</h2><p>Analyze a script in the Breakdown tab first.</p>
     </div>;
   }
@@ -37,7 +37,7 @@ export default function Schedule({ project }) {
     <div style={{ display: "grid", gap: 24 }}>
       <section style={card}>
         <h2 style={{ margin: 0 }}>2 · Schedule</h2>
-        <p style={{ color: "#666", marginTop: 4 }}>
+        <p style={{ color: "#b6b9c0", marginTop: 4 }}>
           Set each shoot day's location and up to 3 candidate dates, send requests,
           then lock the date that works best once responses arrive.
         </p>
@@ -78,10 +78,10 @@ export default function Schedule({ project }) {
   );
 }
 
-const card = { background: "#fff", border: "1px solid #eee", borderRadius: 12, padding: 20 };
-const input = { padding: 10, border: "1px solid #ddd", borderRadius: 8, fontSize: 14, width: "100%", marginTop: 4 };
-const dateInput = { padding: 8, border: "1px solid #ddd", borderRadius: 8, fontSize: 13 };
-const button = { padding: "10px 16px", background: "#111", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 14 };
-const ghost = { padding: "10px 14px", background: "#fff", border: "1px solid #ddd", borderRadius: 8, cursor: "pointer", fontSize: 14 };
+const card = { background: "#161618", border: "1px solid #2a2a2e", borderRadius: 12, padding: 20 };
+const input = { padding: 10, border: "1px solid #35353b", borderRadius: 8, fontSize: 14, width: "100%", marginTop: 4 };
+const dateInput = { padding: 8, border: "1px solid #35353b", borderRadius: 8, fontSize: 13 };
+const button = { padding: "10px 16px", background: "#f5c518", color: "#0d0d0e", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 14 };
+const ghost = { padding: "10px 14px", background: "#161618", border: "1px solid #35353b", borderRadius: 8, cursor: "pointer", fontSize: 14 };
 const del = { border: "none", background: "none", color: "#c00", cursor: "pointer", fontSize: 14 };
-const fieldLabel = { fontSize: 12, fontWeight: 700, color: "#888", textTransform: "uppercase", letterSpacing: 0.4, marginTop: 12, marginBottom: 2, display: "block" };
+const fieldLabel = { fontSize: 12, fontWeight: 700, color: "#74777f", textTransform: "uppercase", letterSpacing: 0.4, marginTop: 12, marginBottom: 2, display: "block" };

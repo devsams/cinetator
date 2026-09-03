@@ -32,13 +32,16 @@ Return ONLY valid JSON (no markdown, no commentary) with this exact shape:
   "scenes": [
     {
       "number": "1",
+      "day": 1,
       "int_ext": "INT" or "EXT",
       "location": "string",
       "time_of_day": "string",
       "cast": ["Character Name", ...],
-      "props": ["prop", ...]
+      "props": ["prop", ...],
+      "pages": "3/8"
     }
   ],
+  "day_notes": { "1": "One-line call note for day 1", "2": "..." },
   "people": [
     {
       "name": "Full Name",
@@ -69,6 +72,18 @@ Repairing PDF extraction artifacts (CRITICAL - the text is messy):
 - Emails are often split by a hyphen line break, e.g. "alex.miller@example-" then
   "cast.com". JOIN into "alex.miller@examplecast.com" (remove the break and hyphen).
 - A single table row may span several lines; group fields correctly per entry.
+
+Extracting shoot days:
+- If the document marks shoot days (e.g. "SHOOT DAY 1", "Day 2", or groups scenes
+  under day headers), set each scene's "day" to that day number.
+- If the document does NOT indicate days, set "day" to null for every scene.
+- Never invent a day number that isn't supported by the document.
+
+Page counts and call notes:
+- "pages" = eighths-of-a-page estimate per scene as a string like "3/8", "1", "1 2/8".
+  Estimate from scene length; if unknown use "1".
+- "day_notes" = a short, practical one-line call note per shoot day (keyed by day
+  number as a string), e.g. crowd/timing/light advice. Only include days that exist.
 
 Other rules:
 - characters = named speaking characters in the scenes.
