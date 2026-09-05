@@ -16,13 +16,33 @@ def _loads(s): return json.loads(s) if s else []
 
 
 def _build_state(session: Session, project_id: str) -> dict:
-    from ..models import Note, Arrival, SceneCompletion
+    from ..models import Note, Arrival, SceneCompletion, PropStatus
     project = session.get(Project, project_id)
     breakdown = json.loads(project.breakdown_json or "{}")
     people = session.exec(select(Person).where(Person.project_id == project_id)).all()
     locations = session.exec(select(Location).where(Location.project_id == project_id)).all()
     days = session.exec(select(ShootDay).where(ShootDay.project_id == project_id)).all()
     responses = session.exec(select(ScheduleResponse).where(ScheduleResponse.project_id == project_id)).all()
+
+    # Props per shoot day: union each day's scene props, joined against the
+    # PropStatus ready/missing flags (same source of truth the readiness
+    # endpoint and Dashboard use), so the assistant sees exactly what the
+    # user sees on the readiness card instead of nothing at all.
+    prop_ready = {
+        (ps.shoot_day_id, ps.prop_name): ps.ready
+        for ps in session.exec(
+            select(PropStatus).where(PropStatus.shoot_day_id.in_([d.id for d in days]))
+        ).all()
+    } if days else {}
+    props_by_day = []
+    for d in days:
+        day_scenes = [sc for sc in breakdown.get("scenes", []) if str(sc.get("day")) == str(d.day_number)]
+        day_props = sorted({p for sc in day_scenes for p in sc.get("props", [])})
+        if day_props:
+            props_by_day.append({
+                "day_number": d.day_number,
+                "props": [{"name": p, "ready": prop_ready.get((d.id, p), False)} for p in day_props],
+            })
 
     notes = session.exec(
         select(Note).where(Note.project_id == project_id, Note.resolved == False)
@@ -60,6 +80,7 @@ def _build_state(session: Session, project_id: str) -> dict:
         ],
         "arrivals_marked": len([a for a in arrivals if a.arrived]),
         "scenes_completed": len([c for c in completions if c.completed]),
+        "props_by_day": props_by_day,
     }
 
 
@@ -243,5 +264,12 @@ def execute(body: ExecuteIn, session: Session = Depends(get_session)):
         if not day:
             raise HTTPException(status_code=404, detail="Day not found.")
         return _set_scene_complete(day.id, _SceneCompleteIn(project_id=pid, scene_number=a["scene_number"], completed=a.get("completed", True)), session)
+
+    if name == "set_prop_ready":
+        from .schedule import set_prop_ready as _set_prop_ready, PropReadyIn as _PropReadyIn
+        day = day_by_num.get(a.get("day_number"))
+        if not day:
+            raise HTTPException(status_code=404, detail="Day not found.")
+        return _set_prop_ready(day.id, _PropReadyIn(project_id=pid, prop_name=a["prop_name"], ready=a.get("ready", True)), session)
 
     raise HTTPException(status_code=400, detail=f"Unknown action: {name}")

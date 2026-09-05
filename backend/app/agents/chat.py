@@ -139,6 +139,19 @@ TOOLS = [
                 "required": ["day_number"],
             },
         ),
+        types.FunctionDeclaration(
+            name="set_prop_ready",
+            description="Mark a prop as ready (or not ready) for a shoot day.",
+            parameters={
+                "type": "OBJECT",
+                "properties": {
+                    "day_number": {"type": "INTEGER"},
+                    "prop_name": {"type": "STRING"},
+                    "ready": {"type": "BOOLEAN", "description": "True to mark ready, false to mark not ready. Defaults to true."},
+                },
+                "required": ["day_number", "prop_name"],
+            },
+        ),
     ])
 ]
 
@@ -160,6 +173,9 @@ Rules:
 - When asked "who responded" or similar, look at responses_detail in the state —
   it lists each person's name, which day, and what they picked or suggested. Name
   them specifically rather than just giving a count.
+- When asked about props (what's needed, what's missing, what's ready), look at
+  props_by_day in the state — each entry lists that day's props with a ready
+  true/false flag. Name the specific props, don't just say "check the dashboard."
 
 CURRENT PRODUCTION STATE:
 {state}
