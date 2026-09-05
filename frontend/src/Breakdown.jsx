@@ -25,6 +25,7 @@ export default function Breakdown({ project, setProject }) {
   const [addResult, setAddResult] = useState(null);
   const [uploads, setUploads] = useState([]);
   const [viewingUpload, setViewingUpload] = useState(null);
+  const [dayNumber, setDayNumber] = useState(1);
 
   const breakdown = project?.breakdown;
   const projectId = project?.project_id;
@@ -64,13 +65,16 @@ export default function Breakdown({ project, setProject }) {
     setLoading(true); setError(""); setAddResult(null);
     try {
       const result = await analyzeScript({
-        title: title || project?.title, scriptText, file, mode,
+        title: title || project?.title, scriptText, file, mode, dayNumber,
         projectId: mode === "details" && projectId ? projectId : (panel === "revise" ? projectId : undefined),
       });
       if (mode === "details" && projectId) {
-        // merged into existing project — refetch breakdown to reflect new locations, keep scenes
+        // merged into existing project — fold the updated breakdown (may now include
+        // new/updated scenes and props from the details import) back into project state
         setAddResult(result);
-        // re-pull the merged breakdown from the analyze response shape used for existing projects
+        if (result.breakdown) {
+          setProject({ ...project, breakdown: result.breakdown });
+        }
       } else {
         setProject({
           ...result,
@@ -114,7 +118,8 @@ export default function Breakdown({ project, setProject }) {
             <button style={choiceCard} onClick={() => setStartMode("details")}>
               <div className="disp" style={{ fontSize: 18 }}>I have production details</div>
               <p style={{ color: "#74777f", fontSize: 13, marginTop: 6 }}>
-                No script yet — just a cast/crew list, location list, or contact sheet. We'll build your people and locations directly.
+                No script yet — a cast/crew list, location list, contact sheet, or a spreadsheet covering
+                cast, crew, locations, scenes, props, and vehicles for a shoot day. We'll build whatever's in it.
               </p>
             </button>
           </div>
@@ -132,8 +137,14 @@ export default function Breakdown({ project, setProject }) {
             <textarea className="ct-ta" style={{ fontFamily: "monospace" }} value={scriptText}
               onChange={(e) => setScriptText(e.target.value)}
               placeholder={startMode === "script" ? "INT. COFFEE SHOP - DAY..." : "CAST\\nAlex Miller — Lead — alex@example.com — +1 555 0100\\n..."} />
-            <span className="ct-lbl">…or upload a PDF / .txt</span>
-            <input type="file" accept=".pdf,.txt" onChange={(e) => setFile(e.target.files[0] || null)} style={{ color: "#b6b9c0", fontSize: 13 }} />
+            <span className="ct-lbl">…or upload a PDF / .txt / .csv</span>
+            <input type="file" accept=".pdf,.txt,.csv" onChange={(e) => setFile(e.target.files[0] || null)} style={{ color: "#b6b9c0", fontSize: 13 }} />
+            {startMode === "details" && (
+              <div style={{ marginTop: 10, maxWidth: 220 }}>
+                <span className="ct-lbl">Day number (for any scenes/props/vehicles in the details)</span>
+                <input type="number" min="1" className="ct-input" value={dayNumber} onChange={(e) => setDayNumber(e.target.value)} />
+              </div>
+            )}
             <div style={{ marginTop: 14 }}>
               <button className="ct-btn dark" onClick={() => onAnalyze(startMode)} disabled={loading}>
                 {loading ? "Analyzing…" : startMode === "script" ? "Analyze script" : "Import details"}
@@ -256,19 +267,25 @@ export default function Breakdown({ project, setProject }) {
       {panel === "add-details" && (
         <div className="ct-card">
           <p className="ct-desc" style={{ marginTop: 0 }}>
-            Add more cast, crew, or locations without touching your existing scenes — e.g. a late-arriving cast list or updated location contacts.
+            Add more cast, crew, locations, scenes, or props — e.g. a late-arriving cast list, updated
+            location contacts, or a day's shoot sheet (a spreadsheet with cast/crew/location/scene/prop/vehicle rows works too).
           </p>
           <span className="ct-lbl">Paste or upload details</span>
           <textarea className="ct-ta" style={{ fontFamily: "monospace" }} value={scriptText} onChange={(e) => setScriptText(e.target.value)}
             placeholder="CAST&#10;Alex Miller — Lead — alex@example.com — +1 555 0100" />
-          <input type="file" accept=".pdf,.txt" onChange={(e) => setFile(e.target.files[0] || null)} style={{ color: "#b6b9c0", fontSize: 13, marginTop: 8 }} />
+          <input type="file" accept=".pdf,.txt,.csv" onChange={(e) => setFile(e.target.files[0] || null)} style={{ color: "#b6b9c0", fontSize: 13, marginTop: 8 }} />
+          <div style={{ marginTop: 10, maxWidth: 220 }}>
+            <span className="ct-lbl">Day number (for any scenes/props/vehicles in the details)</span>
+            <input type="number" min="1" className="ct-input" value={dayNumber} onChange={(e) => setDayNumber(e.target.value)} />
+          </div>
           <div style={{ marginTop: 14 }}>
             <button className="ct-btn dark" onClick={() => onAnalyze("details")} disabled={loading}>{loading ? "Importing…" : "Add to production"}</button>
           </div>
           {error && <p style={{ color: "#ff5c5c" }}>{error}</p>}
           {addResult && (
             <p style={{ color: "#3ddc84", fontSize: 13, marginTop: 10 }}>
-              ✓ Added {addResult.added_people} new {addResult.added_people === 1 ? "person" : "people"}. Check the Plan tab.
+              ✓ Added {addResult.added_people} new {addResult.added_people === 1 ? "person" : "people"}
+              {addResult.added_scenes ? `, ${addResult.added_scenes} scene${addResult.added_scenes === 1 ? "" : "s"}` : ""}. Check the Plan tab.
             </p>
           )}
         </div>

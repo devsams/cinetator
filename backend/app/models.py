@@ -145,4 +145,5 @@ class Upload(SQLModel, table=True):
     mode: str                    # "script" | "details"
     text: str
     filename: Optional[str] = None
+    day_number: Optional[int] = None   # for "details" uploads: default day for any scenes/props found
     created_at: datetime = Field(default_factory=datetime.utcnow)

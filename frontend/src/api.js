@@ -2,13 +2,14 @@ const BASE = import.meta.env.DEV
   ? "http://localhost:8000"
   : "https://cinetator-backend-844278617352.us-central1.run.app";
 
-export async function analyzeScript({ title, scriptText, file, projectId, mode }) {
+export async function analyzeScript({ title, scriptText, file, projectId, mode, dayNumber }) {
   const form = new FormData();
   form.append("title", title || "Untitled Production");
   if (scriptText) form.append("script_text", scriptText);
   if (file) form.append("file", file);
   if (projectId) form.append("project_id", projectId);
   form.append("mode", mode || "script");
+  if (mode === "details" && dayNumber) form.append("day_number", dayNumber);
 
   const res = await fetch(`${BASE}/api/breakdown/analyze`, {
     method: "POST",

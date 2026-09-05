@@ -6,6 +6,7 @@ import Plan from "./Plan";
 import Schedule from "./Schedule";
 import Dashboard from "./Dashboard";
 import Stripboard from "./Stripboard";
+import Storyboard from "./Storyboard";
 import CallSheet from "./CallSheet";
 import MyPage from "./MyPage";
 import Team from "./Team";
@@ -18,9 +19,10 @@ const TABS = [
   { key: "Schedule", no: "03" },
   { key: "Dashboard", no: "04" },
   { key: "Stripboard", no: "05" },
-  { key: "Call Sheet", no: "06" },
-  { key: "My Page", no: "07" },
-  { key: "Team", no: "08" },
+  { key: "Storyboard", no: "06" },
+  { key: "Call Sheet", no: "07" },
+  { key: "My Page", no: "08" },
+  { key: "Team", no: "09" },
 ];
 
 export default function App() {
@@ -84,6 +86,7 @@ export default function App() {
             {tab === "Schedule" && <Schedule project={project} />}
             {tab === "Dashboard" && <Dashboard project={project} />}
             {tab === "Stripboard" && <Stripboard project={project} />}
+            {tab === "Storyboard" && <Storyboard project={project} />}
             {tab === "Call Sheet" && <CallSheet project={project} />}
             {tab === "My Page" && <MyPage project={project} />}
             {tab === "Team" && <Team project={project} />}

@@ -117,9 +117,11 @@ def run_breakdown(script_text: str) -> dict:
 
 
 _DETAILS_PROMPT = """You are a film production data assistant.
-The document below is production details — NOT a screenplay. It may be a cast/crew
-contact list, a location list, a call sheet, or similar. There are no scenes to
-extract here.
+The document below is production details — it might be a simple cast/crew
+contact list or location list, or it might be a structured sheet (e.g. exported
+from a spreadsheet) that also lists scenes, props, and vehicles for a shoot day.
+Extract whatever is actually present; leave a field or array empty if that
+category isn't in the document — don't force data that isn't there.
 
 Return ONLY valid JSON with this exact shape:
 {
@@ -140,17 +142,53 @@ Return ONLY valid JSON with this exact shape:
       "contact_email": "email or null",
       "contact_phone": "phone or null"
     }
+  ],
+  "scenes": [
+    {
+      "number": "1",
+      "day": integer or null,
+      "int_ext": "INT" or "EXT",
+      "location": "location name",
+      "time_of_day": "e.g. a time range, or DAY/NIGHT",
+      "cast": ["character or actor name", ...],
+      "props": ["prop or vehicle name", ...],
+      "pages": "1"
+    }
   ]
 }
 
-Repairing PDF extraction artifacts (the text may be messy):
+If the document is a spreadsheet-style sheet with a category column (values like
+CAST, CREW, LOCATION, SCENE, PROP, VEHICLE), map rows like this:
+- CAST / CREW rows -> "people" (CAST -> role_type "cast", character = the
+  character/role played; CREW -> role_type "crew", character = job title/dept).
+- LOCATION rows -> "location_details".
+- SCENE rows -> one "scenes" entry each. Use the row's id/number as "number",
+  its location column as "location", its time column as "time_of_day". Infer
+  "cast" from any character or actor names mentioned in that scene's notes,
+  cross-referencing the CAST rows in the same document. Guess "int_ext" from
+  context (e.g. "exterior" in notes -> EXT), defaulting to "INT" if unclear —
+  never leave it blank. Leave "day" null unless the document itself states a
+  day number for that scene; do not invent one (a default day supplied outside
+  this document, e.g. from a filename, is applied separately downstream).
+- PROP and VEHICLE rows reference one or more scene numbers (e.g. "Scene 1" or
+  "Scenes 1, 2, 4") — add that row's name to the "props" list of every scene it
+  references (vehicles go in "props" too; there is no separate vehicles list).
+  If a referenced scene number has no SCENE row of its own, still create a
+  minimal scene entry for it (location/time_of_day/cast may be null/empty) so
+  the prop or vehicle isn't dropped.
+
+If the document is just a plain contact list or location list with no scene
+data, return an empty "scenes" array.
+
+Repairing extraction artifacts (the text may be messy, e.g. from a PDF or CSV):
 - Phone numbers may be split across lines (e.g. "+972" then "50-555-0199") — join them.
 - Emails may be split by a hyphen line break (e.g. "name@example-" then "cast.com") —
   join by removing the break and hyphen.
 
 Rules:
 - NEVER invent emails or phone numbers. If not present, use null.
-- If the document lists no people or no locations, return an empty array for that field.
+- If the document lists no people, no locations, or no scenes, return an empty
+  array for that field.
 
 DOCUMENT:
 ---
@@ -171,7 +209,11 @@ def run_details_import(text: str) -> dict:
     )
     text_out = resp.text or "{}"
     try:
-        return json.loads(text_out)
+        data = json.loads(text_out)
     except json.JSONDecodeError:
         cleaned = text_out.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
-        return json.loads(cleaned)
+        data = json.loads(cleaned)
+    data.setdefault("people", [])
+    data.setdefault("location_details", [])
+    data.setdefault("scenes", [])
+    return data
