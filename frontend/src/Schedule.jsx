@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { listDays, autoDays, addDay, updateDay, deleteDay, listLocations } from "./api";
 import SendPanel from "./SendPanel";
 import Decide from "./Decide";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 
 export default function Schedule({ project }) {
   const projectId = project?.project_id;
@@ -54,18 +56,35 @@ export default function Schedule({ project }) {
             <h3 style={{ margin: 0 }}>Day {day.day_number}</h3>
             <button style={del} onClick={() => onDeleteDay(day.id)}>✕</button>
           </div>
+
           <label style={fieldLabel}>Location</label>
-          <select style={input} value={day.location_id || ""} onChange={(e) => onSetLocation(day.id, e.target.value)}>
-            <option value="">— select a confirmed location —</option>
-            {locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-          </select>
+          <Select
+            value={day.location_id || undefined}
+            onValueChange={(val) => onSetLocation(day.id, val)}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="— select a confirmed location —">
+                {(day.location_id && locations.find((l) => l.id === day.location_id)?.name) || undefined}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {locations.map((l) => (
+                <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           {locations.length === 0 && <div style={{ color: "#c80", fontSize: 12, marginTop: 4 }}>No confirmed locations yet — confirm one in the Plan tab first.</div>}
+
           <label style={fieldLabel}>Candidate dates (up to 3)</label>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {[0, 1, 2].map((i) => (
-              <input key={i} type="date" style={dateInput}
+              <Input
+                key={i}
+                type="date"
+                className="w-auto"
                 value={(day.candidate_dates || [])[i] || ""}
-                onChange={(e) => onSetDate(day, i, e.target.value)} />
+                onChange={(e) => onSetDate(day, i, e.target.value)}
+              />
             ))}
           </div>
           {day.locked_date && <div style={{ marginTop: 8, color: "#181", fontSize: 13 }}>✓ Locked: {day.locked_date}</div>}
@@ -79,8 +98,6 @@ export default function Schedule({ project }) {
 }
 
 const card = { background: "#161618", border: "1px solid #2a2a2e", borderRadius: 12, padding: 20 };
-const input = { padding: 10, border: "1px solid #35353b", borderRadius: 8, fontSize: 14, width: "100%", marginTop: 4 };
-const dateInput = { padding: 8, border: "1px solid #35353b", borderRadius: 8, fontSize: 13 };
 const button = { padding: "10px 16px", background: "#f5c518", color: "#0d0d0e", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 14 };
 const ghost = { padding: "10px 14px", background: "#161618", border: "1px solid #35353b", borderRadius: 8, cursor: "pointer", fontSize: 14 };
 const del = { border: "none", background: "none", color: "#c00", cursor: "pointer", fontSize: 14 };

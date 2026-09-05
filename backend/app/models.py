@@ -99,3 +99,50 @@ class Strip(SQLModel, table=True):
     scene_number: Optional[str] = None   # references breakdown.scenes[].number
     label: Optional[str] = None          # for special strips: Crew Call / Company Move / Lunch Break / Wrap
     duration_mins: int = 30
+
+
+class Note(SQLModel, table=True):
+    id: str = Field(default_factory=_uid, primary_key=True)
+    project_id: str = Field(foreign_key="project.id")
+    person_id: str = Field(foreign_key="person.id")
+    shoot_day_id: Optional[str] = Field(default=None, foreign_key="shootday.id")
+    text: str
+    flags_production: bool = False
+    resolved: bool = False
+    reply_text: Optional[str] = None
+    replied_at: Optional[datetime] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class PropStatus(SQLModel, table=True):
+    id: str = Field(default_factory=_uid, primary_key=True)
+    project_id: str = Field(foreign_key="project.id")
+    shoot_day_id: str = Field(foreign_key="shootday.id")
+    prop_name: str
+    ready: bool = False
+
+
+class Arrival(SQLModel, table=True):
+    id: str = Field(default_factory=_uid, primary_key=True)
+    project_id: str = Field(foreign_key="project.id")
+    shoot_day_id: str = Field(foreign_key="shootday.id")
+    person_id: str = Field(foreign_key="person.id")
+    arrived: bool = False
+    arrived_at: Optional[datetime] = None
+
+
+class SceneCompletion(SQLModel, table=True):
+    id: str = Field(default_factory=_uid, primary_key=True)
+    project_id: str = Field(foreign_key="project.id")
+    shoot_day_id: str = Field(foreign_key="shootday.id")
+    scene_number: str
+    completed: bool = False
+
+
+class Upload(SQLModel, table=True):
+    id: str = Field(default_factory=_uid, primary_key=True)
+    project_id: str = Field(foreign_key="project.id")
+    mode: str                    # "script" | "details"
+    text: str
+    filename: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)

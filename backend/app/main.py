@@ -7,10 +7,8 @@ app = FastAPI(title="Cinetator API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://cinetator-frontend-844278617352.us-central1.run.app",
-        "http://localhost:5173",
-    ],
+    allow_origin_regex=r"http://localhost:\d+",
+    allow_origins=["https://cinetator-frontend-844278617352.us-central1.run.app"],
     allow_methods=["*"],
     allow_headers=["*"],
 )

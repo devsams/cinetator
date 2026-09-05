@@ -7,6 +7,8 @@ import Schedule from "./Schedule";
 import Dashboard from "./Dashboard";
 import Stripboard from "./Stripboard";
 import CallSheet from "./CallSheet";
+import MyPage from "./MyPage";
+import Team from "./Team";
 import CommandCenter from "./CommandCenter";
 import { getProject } from "./api";
 
@@ -17,9 +19,12 @@ const TABS = [
   { key: "Dashboard", no: "04" },
   { key: "Stripboard", no: "05" },
   { key: "Call Sheet", no: "06" },
+  { key: "My Page", no: "07" },
+  { key: "Team", no: "08" },
 ];
 
 export default function App() {
+  // reserve space so the docked chat panel never overlaps page content
   const [view, setView] = useState("home");
   const [project, setProject] = useState(null);
   const [tab, setTab] = useState("Breakdown");
@@ -40,7 +45,7 @@ export default function App() {
 
   return (
     <div>
-      <div className="ct-nav">
+      <div className="ct-nav" style={{ justifyContent: "flex-start", gap: 28 }}>
         <div className="ct-logo" onClick={() => setView("home")}>
           <span className="mk" /> CINE<em>TATOR</em>
         </div>
@@ -80,6 +85,8 @@ export default function App() {
             {tab === "Dashboard" && <Dashboard project={project} />}
             {tab === "Stripboard" && <Stripboard project={project} />}
             {tab === "Call Sheet" && <CallSheet project={project} />}
+            {tab === "My Page" && <MyPage project={project} />}
+            {tab === "Team" && <Team project={project} />}
           </main>
           <CommandCenter project={project} />
         </>

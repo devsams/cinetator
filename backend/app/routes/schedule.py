@@ -528,3 +528,232 @@ def activity(project_id: str, session: Session = Depends(get_session)):
             "at": e.created_at.isoformat() if e.created_at else None,
         })
     return out
+
+
+# ---------- Readiness (requirement checklist + score) ----------
+from ..models import PropStatus
+
+CREW_ROLE_KEYWORDS = ["director", "camera", "dp", "sound", "gaffer", "grip", "editor", "producer", "makeup", "mua"]
+
+
+@router.get("/readiness/{shoot_day_id}")
+def readiness(shoot_day_id: str, session: Session = Depends(get_session)):
+    day = session.get(ShootDay, shoot_day_id)
+    if not day:
+        raise HTTPException(status_code=404, detail="Shoot day not found.")
+    project = session.get(Project, day.project_id)
+    breakdown = json.loads(project.breakdown_json or "{}")
+    loc = session.get(Location, day.location_id) if day.location_id else None
+    people = session.exec(select(Person).where(Person.project_id == day.project_id)).all()
+    responses = session.exec(
+        select(ScheduleResponse).where(ScheduleResponse.shoot_day_id == shoot_day_id)
+    ).all()
+    resp_by_person = {r.person_id: r for r in responses}
+
+    def is_confirmed(person_id):
+        r = resp_by_person.get(person_id)
+        if not r:
+            return False
+        picked = _loads(r.picked_dates)
+        return bool(picked) and (day.locked_date in picked if day.locked_date else True)
+
+    items = []
+
+    # Location
+    items.append({
+        "category": "Location",
+        "name": loc.name if loc else "No location set",
+        "status": "confirmed" if (loc and loc.research_json) else ("pending" if loc else "missing"),
+    })
+
+    # Cast needed this day (from breakdown scenes tagged to this day)
+    day_scenes = [sc for sc in breakdown.get("scenes", []) if str(sc.get("day")) == str(day.day_number)]
+    cast_needed = set()
+    for sc in day_scenes:
+        cast_needed.update(sc.get("cast", []))
+    for char in cast_needed:
+        person = next((p for p in people if (p.character or "").lower() == char.lower() or p.name.lower() == char.lower()), None)
+        if person:
+            items.append({
+                "category": "Cast",
+                "name": f"{person.name}" + (f" ({person.character})" if person.character else ""),
+                "status": "confirmed" if is_confirmed(person.id) else "pending",
+            })
+        else:
+            items.append({"category": "Cast", "name": char, "status": "missing"})
+
+    # Crew roles (from crew people's `character` field acting as role label)
+    crew = [p for p in people if p.role_type == "crew"]
+    for c in crew:
+        items.append({
+            "category": "Crew",
+            "name": f"{c.name}" + (f" — {c.character}" if c.character else ""),
+            "status": "confirmed" if is_confirmed(c.id) else "pending",
+        })
+
+    # Props for this day's scenes
+    all_props = set()
+    for sc in day_scenes:
+        all_props.update(sc.get("props", []))
+    prop_status = {
+        ps.prop_name: ps.ready
+        for ps in session.exec(select(PropStatus).where(PropStatus.shoot_day_id == shoot_day_id)).all()
+    }
+    for prop in all_props:
+        items.append({
+            "category": "Props",
+            "name": prop,
+            "status": "confirmed" if prop_status.get(prop) else "missing",
+        })
+
+    total = len(items)
+    confirmed_count = sum(1 for i in items if i["status"] == "confirmed")
+    pct = round((confirmed_count / total) * 100) if total else 100
+
+    blocking = [i for i in items if i["status"] != "confirmed"]
+
+    return {
+        "shoot_day_id": shoot_day_id,
+        "day_number": day.day_number,
+        "readiness_pct": pct,
+        "items": items,
+        "blocking": blocking,
+    }
+
+
+class PropReadyIn(BaseModel):
+    project_id: str
+    prop_name: str
+    ready: bool = True
+
+
+@router.post("/readiness/{shoot_day_id}/prop")
+def set_prop_ready(shoot_day_id: str, body: PropReadyIn, session: Session = Depends(get_session)):
+    existing = session.exec(
+        select(PropStatus).where(
+            PropStatus.shoot_day_id == shoot_day_id, PropStatus.prop_name == body.prop_name
+        )
+    ).first()
+    if existing:
+        existing.ready = body.ready
+        session.add(existing)
+    else:
+        session.add(PropStatus(
+            project_id=body.project_id, shoot_day_id=shoot_day_id,
+            prop_name=body.prop_name, ready=body.ready,
+        ))
+    session.commit()
+    return {"prop_name": body.prop_name, "ready": body.ready}
+
+
+# ---------- Shoot Day (arrivals + scene completion) ----------
+from ..models import Arrival, SceneCompletion
+
+
+@router.get("/shootday/{shoot_day_id}")
+def shoot_day_status(shoot_day_id: str, session: Session = Depends(get_session)):
+    day = session.get(ShootDay, shoot_day_id)
+    if not day:
+        raise HTTPException(status_code=404, detail="Shoot day not found.")
+    project = session.get(Project, day.project_id)
+    breakdown = json.loads(project.breakdown_json or "{}")
+    day_scenes = [sc for sc in breakdown.get("scenes", []) if str(sc.get("day")) == str(day.day_number)]
+
+    people = session.exec(select(Person).where(Person.project_id == day.project_id)).all()
+    cast_needed = set()
+    for sc in day_scenes:
+        cast_needed.update(sc.get("cast", []))
+    crew = [p for p in people if p.role_type == "crew"]
+    roster_people = [
+        p for p in people
+        if p.role_type == "crew" or (p.character or "").lower() in {c.lower() for c in cast_needed}
+        or p.name.lower() in {c.lower() for c in cast_needed}
+    ]
+
+    arrivals = {
+        a.person_id: a
+        for a in session.exec(select(Arrival).where(Arrival.shoot_day_id == shoot_day_id)).all()
+    }
+    completions = {
+        c.scene_number: c
+        for c in session.exec(select(SceneCompletion).where(SceneCompletion.shoot_day_id == shoot_day_id)).all()
+    }
+
+    roster = [
+        {
+            "person_id": p.id, "name": p.name, "role_type": p.role_type, "character": p.character,
+            "arrived": arrivals[p.id].arrived if p.id in arrivals else False,
+        }
+        for p in roster_people
+    ]
+    scenes = [
+        {
+            "number": sc.get("number"), "location": sc.get("location"),
+            "int_ext": sc.get("int_ext"), "time_of_day": sc.get("time_of_day"),
+            "completed": completions[sc.get("number")].completed if sc.get("number") in completions else False,
+        }
+        for sc in day_scenes
+    ]
+
+    all_arrived = bool(roster) and all(r["arrived"] for r in roster)
+    all_complete = bool(scenes) and all(s["completed"] for s in scenes)
+
+    return {
+        "shoot_day_id": shoot_day_id,
+        "day_number": day.day_number,
+        "locked_date": day.locked_date,
+        "roster": roster,
+        "scenes": scenes,
+        "all_arrived": all_arrived,
+        "all_complete": all_complete,
+        "wrapped": all_arrived and all_complete,
+    }
+
+
+class ArrivalIn(BaseModel):
+    project_id: str
+    person_id: str
+    arrived: bool = True
+
+
+@router.post("/shootday/{shoot_day_id}/arrival")
+def set_arrival(shoot_day_id: str, body: ArrivalIn, session: Session = Depends(get_session)):
+    existing = session.exec(
+        select(Arrival).where(Arrival.shoot_day_id == shoot_day_id, Arrival.person_id == body.person_id)
+    ).first()
+    if existing:
+        existing.arrived = body.arrived
+        existing.arrived_at = datetime.utcnow() if body.arrived else None
+        session.add(existing)
+    else:
+        session.add(Arrival(
+            project_id=body.project_id, shoot_day_id=shoot_day_id, person_id=body.person_id,
+            arrived=body.arrived, arrived_at=datetime.utcnow() if body.arrived else None,
+        ))
+    session.commit()
+    return {"person_id": body.person_id, "arrived": body.arrived}
+
+
+class SceneCompleteIn(BaseModel):
+    project_id: str
+    scene_number: str
+    completed: bool = True
+
+
+@router.post("/shootday/{shoot_day_id}/scene")
+def set_scene_complete(shoot_day_id: str, body: SceneCompleteIn, session: Session = Depends(get_session)):
+    existing = session.exec(
+        select(SceneCompletion).where(
+            SceneCompletion.shoot_day_id == shoot_day_id, SceneCompletion.scene_number == body.scene_number
+        )
+    ).first()
+    if existing:
+        existing.completed = body.completed
+        session.add(existing)
+    else:
+        session.add(SceneCompletion(
+            project_id=body.project_id, shoot_day_id=shoot_day_id,
+            scene_number=body.scene_number, completed=body.completed,
+        ))
+    session.commit()
+    return {"scene_number": body.scene_number, "completed": body.completed}

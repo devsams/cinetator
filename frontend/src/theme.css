@@ -1,3 +1,23 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@theme {
+  --color-border: #35353b;
+  --color-input: #242428;
+  --color-ring: #f5c518;
+  --color-background: #0d0d0e;
+  --color-foreground: #ffffff;
+  --color-popover: #1d1d20;
+  --color-popover-foreground: #ffffff;
+  --color-accent: #242428;
+  --color-accent-foreground: #ffffff;
+  --color-muted: #1d1d20;
+  --color-muted-foreground: #74777f;
+  --color-destructive: #ff5c5c;
+  --radius-lg: 12px;
+  --radius-md: 10px;
+}
+
 :root{
   --bg:#0d0d0e; --panel:#161618; --panel2:#1d1d20; --raise:#242428;
   --line:#2a2a2e; --line2:#35353b;
@@ -124,4 +144,124 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
   body *{visibility:hidden}
   #callsheet-print,#callsheet-print *{visibility:visible}
   #callsheet-print{position:absolute;left:0;top:0;width:100%;background:#fff !important;color:#000 !important;padding:16px}
+}
+
+/* native form controls need explicit overrides — browsers ignore inherited bg/color otherwise */
+select.ct-input, input[type="date"].ct-input, input[type="time"].ct-input {
+  background: var(--raise) !important;
+  color: var(--ink) !important;
+  color-scheme: dark;
+}
+select.ct-input option {
+  background: var(--panel2);
+  color: var(--ink);
+}
+
+/* Global safety net: force dark styling on every native form control,
+   overriding any leftover inline light-theme styles with !important. */
+input, select, textarea {
+  background: var(--raise) !important;
+  color: var(--ink) !important;
+  border: 1px solid var(--line2) !important;
+  border-radius: 9px;
+  padding: 9px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  color-scheme: dark;
+}
+input::placeholder, textarea::placeholder {
+  color: var(--muted);
+}
+select option {
+  background: var(--panel2);
+  color: var(--ink);
+}
+input[type="checkbox"], input[type="radio"] {
+  background: none;
+  border: none;
+  padding: 0;
+  width: auto;
+}
+
+@layer base {
+  .theme {
+    --font-heading:var(--font-sans);
+    --font-sans:'Geist Variable', sans-serif;
+  }
+  :root {
+    --background:oklch(1 0 0);
+    --foreground:oklch(0.145 0 0);
+    --card:oklch(1 0 0);
+    --card-foreground:oklch(0.145 0 0);
+    --popover:oklch(1 0 0);
+    --popover-foreground:oklch(0.145 0 0);
+    --primary:oklch(0.205 0 0);
+    --primary-foreground:oklch(0.985 0 0);
+    --secondary:oklch(0.97 0 0);
+    --secondary-foreground:oklch(0.205 0 0);
+    --muted:oklch(0.97 0 0);
+    --muted-foreground:oklch(0.556 0 0);
+    --accent:oklch(0.97 0 0);
+    --accent-foreground:oklch(0.205 0 0);
+    --destructive:oklch(0.577 0.245 27.325);
+    --border:oklch(0.922 0 0);
+    --input:oklch(0.922 0 0);
+    --ring:oklch(0.708 0 0);
+    --chart-1:oklch(0.87 0 0);
+    --chart-2:oklch(0.556 0 0);
+    --chart-3:oklch(0.439 0 0);
+    --chart-4:oklch(0.371 0 0);
+    --chart-5:oklch(0.269 0 0);
+    --radius:0.625rem;
+    --sidebar:oklch(0.985 0 0);
+    --sidebar-foreground:oklch(0.145 0 0);
+    --sidebar-primary:oklch(0.205 0 0);
+    --sidebar-primary-foreground:oklch(0.985 0 0);
+    --sidebar-accent:oklch(0.97 0 0);
+    --sidebar-accent-foreground:oklch(0.205 0 0);
+    --sidebar-border:oklch(0.922 0 0);
+    --sidebar-ring:oklch(0.708 0 0);
+  }
+  .dark {
+    --background:oklch(0.145 0 0);
+    --foreground:oklch(0.985 0 0);
+    --card:oklch(0.205 0 0);
+    --card-foreground:oklch(0.985 0 0);
+    --popover:oklch(0.205 0 0);
+    --popover-foreground:oklch(0.985 0 0);
+    --primary:oklch(0.922 0 0);
+    --primary-foreground:oklch(0.205 0 0);
+    --secondary:oklch(0.269 0 0);
+    --secondary-foreground:oklch(0.985 0 0);
+    --muted:oklch(0.269 0 0);
+    --muted-foreground:oklch(0.708 0 0);
+    --accent:oklch(0.269 0 0);
+    --accent-foreground:oklch(0.985 0 0);
+    --destructive:oklch(0.704 0.191 22.216);
+    --border:oklch(1 0 0 / 10%);
+    --input:oklch(1 0 0 / 15%);
+    --ring:oklch(0.556 0 0);
+    --chart-1:oklch(0.87 0 0);
+    --chart-2:oklch(0.556 0 0);
+    --chart-3:oklch(0.439 0 0);
+    --chart-4:oklch(0.371 0 0);
+    --chart-5:oklch(0.269 0 0);
+    --sidebar:oklch(0.205 0 0);
+    --sidebar-foreground:oklch(0.985 0 0);
+    --sidebar-primary:oklch(0.488 0.243 264.376);
+    --sidebar-primary-foreground:oklch(0.985 0 0);
+    --sidebar-accent:oklch(0.269 0 0);
+    --sidebar-accent-foreground:oklch(0.985 0 0);
+    --sidebar-border:oklch(1 0 0 / 10%);
+    --sidebar-ring:oklch(0.556 0 0);
+  }
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
 }

@@ -16,12 +16,22 @@ def _loads(s): return json.loads(s) if s else []
 
 
 def _build_state(session: Session, project_id: str) -> dict:
+    from ..models import Note, Arrival, SceneCompletion
     project = session.get(Project, project_id)
     breakdown = json.loads(project.breakdown_json or "{}")
     people = session.exec(select(Person).where(Person.project_id == project_id)).all()
     locations = session.exec(select(Location).where(Location.project_id == project_id)).all()
     days = session.exec(select(ShootDay).where(ShootDay.project_id == project_id)).all()
     responses = session.exec(select(ScheduleResponse).where(ScheduleResponse.project_id == project_id)).all()
+
+    notes = session.exec(
+        select(Note).where(Note.project_id == project_id, Note.resolved == False)
+    ).all()
+    people_by_id = {p.id: p for p in people}
+
+    arrivals = session.exec(select(Arrival).where(Arrival.project_id == project_id)).all()
+    completions = session.exec(select(SceneCompletion).where(SceneCompletion.project_id == project_id)).all()
+
     return {
         "title": project.title,
         "scenes": len(breakdown.get("scenes", [])),
@@ -33,6 +43,23 @@ def _build_state(session: Session, project_id: str) -> dict:
         "shoot_days": [{"day_number": d.day_number, "location_id": d.location_id,
                          "candidate_dates": _loads(d.candidate_dates), "locked_date": d.locked_date} for d in days],
         "responses_count": len(responses),
+        "responses_detail": [
+            {
+                "person": people_by_id[r.person_id].name if r.person_id in people_by_id else "Unknown",
+                "shoot_day_id": r.shoot_day_id,
+                "day_number": next((d.day_number for d in days if d.id == r.shoot_day_id), None),
+                "picked_dates": _loads(r.picked_dates),
+                "suggested_dates": _loads(r.suggested_dates),
+            }
+            for r in responses
+        ],
+        "unanswered_notes": [
+            {"person": people_by_id[n.person_id].name if n.person_id in people_by_id else "Unknown",
+             "text": n.text, "flags_production": n.flags_production}
+            for n in notes
+        ],
+        "arrivals_marked": len([a for a in arrivals if a.arrived]),
+        "scenes_completed": len([c for c in completions if c.completed]),
     }
 
 
@@ -108,6 +135,23 @@ def chat(body: ChatIn, session: Session = Depends(get_session)):
     state = _build_state(session, body.project_id)
     result = chat_turn(state, history, body.message)
 
+    # check_readiness is read-only: execute immediately and fold the answer into the reply
+    tool_call = result.get("tool_call")
+    if tool_call and tool_call["name"] == "check_readiness":
+        from ..models import ShootDay as _SD
+        day_number = tool_call["args"].get("day_number")
+        day = session.exec(
+            select(_SD).where(_SD.project_id == body.project_id, _SD.day_number == day_number)
+        ).first()
+        if day:
+            from .schedule import readiness as _readiness
+            rd = _readiness(day.id, session)
+            blocking_txt = ", ".join(f"{b['name']} ({b['status']})" for b in rd["blocking"]) or "nothing"
+            result["reply"] = (result.get("reply", "") + f"\n\nDay {day_number} is {rd['readiness_pct']}% ready. Blocking: {blocking_txt}.").strip()
+        else:
+            result["reply"] = (result.get("reply", "") + f"\n\nI couldn't find Day {day_number}.").strip()
+        result["tool_call"] = None  # already answered, nothing to confirm
+
     # save the assistant's reply
     session.add(ChatMessage(session_id=body.session_id, role="assistant", text=result.get("reply", "")))
     cs.updated_at = datetime.utcnow()
@@ -170,5 +214,34 @@ def execute(body: ExecuteIn, session: Session = Depends(get_session)):
         if name == "send_reminder":
             return _remind(RemindIn(project_id=pid, person_ids=ids), session)
         return _send_requests(SendIn(project_id=pid, person_ids=ids), session)
+
+    if name == "reply_to_note":
+        from ..models import Note
+        from .link import ReplyIn as _ReplyIn, reply_to_note as _reply_to_note
+        person = by_name.get(a["person_name"].lower())
+        if not person:
+            raise HTTPException(status_code=404, detail="Person not found.")
+        note = session.exec(
+            select(Note).where(Note.person_id == person.id, Note.reply_text == None)
+            .order_by(Note.created_at.desc())
+        ).first()
+        if not note:
+            raise HTTPException(status_code=404, detail=f"No unanswered note from {person.name}.")
+        return _reply_to_note(note.id, _ReplyIn(reply_text=a["reply_text"]), session)
+
+    if name == "mark_arrived":
+        from .schedule import set_arrival as _set_arrival, ArrivalIn as _ArrivalIn
+        person = by_name.get(a["person_name"].lower())
+        day = day_by_num.get(a.get("day_number"))
+        if not person or not day:
+            raise HTTPException(status_code=404, detail="Person or day not found.")
+        return _set_arrival(day.id, _ArrivalIn(project_id=pid, person_id=person.id, arrived=a.get("arrived", True)), session)
+
+    if name == "mark_scene_complete":
+        from .schedule import set_scene_complete as _set_scene_complete, SceneCompleteIn as _SceneCompleteIn
+        day = day_by_num.get(a.get("day_number"))
+        if not day:
+            raise HTTPException(status_code=404, detail="Day not found.")
+        return _set_scene_complete(day.id, _SceneCompleteIn(project_id=pid, scene_number=a["scene_number"], completed=a.get("completed", True)), session)
 
     raise HTTPException(status_code=400, detail=f"Unknown action: {name}")

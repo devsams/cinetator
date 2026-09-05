@@ -1,11 +1,14 @@
-const BASE = "https://cinetator-backend-844278617352.us-central1.run.app";
+const BASE = import.meta.env.DEV
+  ? "http://localhost:8000"
+  : "https://cinetator-backend-844278617352.us-central1.run.app";
 
-export async function analyzeScript({ title, scriptText, file, projectId }) {
+export async function analyzeScript({ title, scriptText, file, projectId, mode }) {
   const form = new FormData();
   form.append("title", title || "Untitled Production");
   if (scriptText) form.append("script_text", scriptText);
   if (file) form.append("file", file);
   if (projectId) form.append("project_id", projectId);
+  form.append("mode", mode || "script");
 
   const res = await fetch(`${BASE}/api/breakdown/analyze`, {
     method: "POST",
@@ -382,5 +385,139 @@ export async function setCompany(projectId, company) {
     body: JSON.stringify({ production_company: company }),
   });
   if (!res.ok) throw new Error("Failed to set company");
+  return res.json();
+}
+
+export async function getPersonView(personId) {
+  const res = await fetch(`${BASE}/api/link/by-person/${personId}`);
+  if (!res.ok) throw new Error("Failed to load person view");
+  return res.json();
+}
+export async function submitPersonResponse(personId, shootDayId, pickedDates, suggestedDates) {
+  const res = await fetch(`${BASE}/api/link/by-person/${personId}/respond`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ shoot_day_id: shootDayId, picked_dates: pickedDates, suggested_dates: suggestedDates }),
+  });
+  if (!res.ok) throw new Error("Failed to submit");
+  return res.json();
+}
+
+
+export async function getScript(projectId) {
+  const res = await fetch(`${BASE}/api/breakdown/${projectId}/script`);
+  if (!res.ok) throw new Error("Failed to load script");
+  return res.json();
+}
+
+export async function addNote(personId, text, shootDayId) {
+  const res = await fetch(`${BASE}/api/link/by-person/${personId}/notes`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text, shoot_day_id: shootDayId || null }),
+  });
+  if (!res.ok) throw new Error("Failed to add note");
+  return res.json();
+}
+
+
+export async function listNotes(projectId) {
+  const res = await fetch(`${BASE}/api/link/notes/${projectId}`);
+  if (!res.ok) throw new Error("Failed to load notes");
+  return res.json();
+}
+export async function resolveNote(noteId, resolved = true) {
+  const res = await fetch(`${BASE}/api/link/notes/${noteId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ resolved }),
+  });
+  if (!res.ok) throw new Error("Failed to update note");
+  return res.json();
+}
+
+export async function getReadiness(shootDayId) {
+  const res = await fetch(`${BASE}/api/schedule/readiness/${shootDayId}`);
+  if (!res.ok) throw new Error("Failed to load readiness");
+  return res.json();
+}
+export async function setPropReady(shootDayId, projectId, propName, ready) {
+  const res = await fetch(`${BASE}/api/schedule/readiness/${shootDayId}/prop`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ project_id: projectId, prop_name: propName, ready }),
+  });
+  if (!res.ok) throw new Error("Failed to update prop");
+  return res.json();
+}
+
+export async function getShootDayStatus(shootDayId) {
+  const res = await fetch(`${BASE}/api/schedule/shootday/${shootDayId}`);
+  if (!res.ok) throw new Error("Failed to load shoot day status");
+  return res.json();
+}
+export async function setArrival(shootDayId, projectId, personId, arrived) {
+  const res = await fetch(`${BASE}/api/schedule/shootday/${shootDayId}/arrival`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ project_id: projectId, person_id: personId, arrived }),
+  });
+  if (!res.ok) throw new Error("Failed to update arrival");
+  return res.json();
+}
+export async function setSceneComplete(shootDayId, projectId, sceneNumber, completed) {
+  const res = await fetch(`${BASE}/api/schedule/shootday/${shootDayId}/scene`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ project_id: projectId, scene_number: sceneNumber, completed }),
+  });
+  if (!res.ok) throw new Error("Failed to update scene");
+  return res.json();
+}
+
+export async function replyToNote(noteId, replyText) {
+  const res = await fetch(`${BASE}/api/link/notes/${noteId}/reply`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ reply_text: replyText }),
+  });
+  if (!res.ok) throw new Error("Failed to send reply");
+  return res.json();
+}
+export async function listMyNotes(personId) {
+  const res = await fetch(`${BASE}/api/link/by-person/${personId}/notes`);
+  if (!res.ok) throw new Error("Failed to load notes");
+  return res.json();
+}
+
+export async function listUploads(projectId) {
+  const res = await fetch(`${BASE}/api/breakdown/uploads/${projectId}`);
+  if (!res.ok) throw new Error("Failed to load upload history");
+  return res.json();
+}
+export async function getUpload(uploadId) {
+  const res = await fetch(`${BASE}/api/breakdown/uploads/one/${uploadId}`);
+  if (!res.ok) throw new Error("Failed to load upload");
+  return res.json();
+}
+export async function reapplyUpload(uploadId) {
+  const res = await fetch(`${BASE}/api/breakdown/uploads/${uploadId}/reapply`, { method: "POST" });
+  if (!res.ok) throw new Error("Failed to reapply upload");
+  return res.json();
+}
+
+export async function addScene(projectId, scene) {
+  const res = await fetch(`${BASE}/api/breakdown/${projectId}/add-scene`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(scene),
+  });
+  if (!res.ok) throw new Error("Failed to add scene");
+  return res.json();
+}
+
+export async function getBreakdown(projectId) {
+  const res = await fetch(`${BASE}/api/breakdown/${projectId}`);
+  if (!res.ok) throw new Error("Failed to load breakdown");
   return res.json();
 }

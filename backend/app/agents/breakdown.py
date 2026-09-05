@@ -114,3 +114,64 @@ def run_breakdown(script_text: str) -> dict:
     except json.JSONDecodeError:
         cleaned = text.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
         return json.loads(cleaned)
+
+
+_DETAILS_PROMPT = """You are a film production data assistant.
+The document below is production details — NOT a screenplay. It may be a cast/crew
+contact list, a location list, a call sheet, or similar. There are no scenes to
+extract here.
+
+Return ONLY valid JSON with this exact shape:
+{
+  "people": [
+    {
+      "name": "Full Name",
+      "role_type": "cast" or "crew" or "other",
+      "character": "role/character/job title or null",
+      "email": "email or null",
+      "phone": "phone or null"
+    }
+  ],
+  "location_details": [
+    {
+      "name": "Location name",
+      "address": "address/city or null",
+      "contact_name": "on-site coordinator or null",
+      "contact_email": "email or null",
+      "contact_phone": "phone or null"
+    }
+  ]
+}
+
+Repairing PDF extraction artifacts (the text may be messy):
+- Phone numbers may be split across lines (e.g. "+972" then "50-555-0199") — join them.
+- Emails may be split by a hyphen line break (e.g. "name@example-" then "cast.com") —
+  join by removing the break and hyphen.
+
+Rules:
+- NEVER invent emails or phone numbers. If not present, use null.
+- If the document lists no people or no locations, return an empty array for that field.
+
+DOCUMENT:
+---
+{doc}
+---
+"""
+
+
+def run_details_import(text: str) -> dict:
+    prompt = _DETAILS_PROMPT.replace("{doc}", text[:100000])
+    resp = _client.models.generate_content(
+        model=_MODEL,
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            temperature=0.1,
+            response_mime_type="application/json",
+        ),
+    )
+    text_out = resp.text or "{}"
+    try:
+        return json.loads(text_out)
+    except json.JSONDecodeError:
+        cleaned = text_out.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+        return json.loads(cleaned)

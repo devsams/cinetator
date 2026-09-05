@@ -90,10 +90,59 @@ TOOLS = [
                 "required": ["names"],
             },
         ),
+        types.FunctionDeclaration(
+            name="reply_to_note",
+            description="Reply to a person's most recent unanswered note/message to production.",
+            parameters={
+                "type": "OBJECT",
+                "properties": {
+                    "person_name": {"type": "STRING"},
+                    "reply_text": {"type": "STRING"},
+                },
+                "required": ["person_name", "reply_text"],
+            },
+        ),
+        types.FunctionDeclaration(
+            name="mark_arrived",
+            description="Mark a person as arrived (or not arrived) on a shoot day.",
+            parameters={
+                "type": "OBJECT",
+                "properties": {
+                    "person_name": {"type": "STRING"},
+                    "day_number": {"type": "INTEGER"},
+                    "arrived": {"type": "BOOLEAN"},
+                },
+                "required": ["person_name", "day_number"],
+            },
+        ),
+        types.FunctionDeclaration(
+            name="mark_scene_complete",
+            description="Mark a scene as shot/complete (or not) on a shoot day.",
+            parameters={
+                "type": "OBJECT",
+                "properties": {
+                    "scene_number": {"type": "STRING"},
+                    "day_number": {"type": "INTEGER"},
+                    "completed": {"type": "BOOLEAN"},
+                },
+                "required": ["scene_number", "day_number"],
+            },
+        ),
+        types.FunctionDeclaration(
+            name="check_readiness",
+            description="Read-only: check how ready a shoot day is (percentage and what's blocking it). Does not change anything.",
+            parameters={
+                "type": "OBJECT",
+                "properties": {
+                    "day_number": {"type": "INTEGER"},
+                },
+                "required": ["day_number"],
+            },
+        ),
     ])
 ]
 
-_SYSTEM = """You are the Command Center for Cinetator, a film production coordination app.
+_SYSTEM = """You are Lily, the Command Center assistant for Cinetator, a film production coordination app.
 You help the production team understand and manage their shoot by answering questions
 and, when asked, proposing actions using the available tools.
 
@@ -101,11 +150,16 @@ Rules:
 - Answer questions directly and concisely using the CURRENT PRODUCTION STATE below.
 - If the user asks you to do something that matches a tool, call that tool. Do not
   fabricate a tool call for something not requested.
+- check_readiness is read-only — it answers a question, it never needs confirmation.
+  All other tools change real data and must be confirmed by the user before running.
 - Never claim an action was completed — the system will execute it only after the
   user confirms; you are only proposing it.
 - If information is missing or ambiguous (e.g. no email on file, unknown person),
   say so plainly instead of guessing.
 - Keep answers short and practical, like a helpful assistant, not a report.
+- When asked "who responded" or similar, look at responses_detail in the state —
+  it lists each person's name, which day, and what they picked or suggested. Name
+  them specifically rather than just giving a count.
 
 CURRENT PRODUCTION STATE:
 {state}
