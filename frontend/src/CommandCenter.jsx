@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import {
   listChatSessions, newChatSession, getChatMessages, sendChat, executeChatAction,
 } from "./api";
+import { onAskLily } from "./lilyBus";
 
 function actionLabel(name, args) {
   switch (name) {
@@ -34,6 +35,15 @@ export default function CommandCenter({ project }) {
   const endRef = useRef(null);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages, pending, open]);
+
+  // A tab's AI layer hands off a recommendation here: open the panel and
+  // pre-fill the input with it, but never send it automatically — the person
+  // still reviews and hits send (and then confirms the proposed action)
+  // themselves, same as if they'd typed it.
+  useEffect(() => onAskLily((message) => {
+    setOpen(true);
+    setInput(message);
+  }), []);
 
   async function loadSessions() {
     try { setSessions(await listChatSessions(projectId)); } catch {}

@@ -522,3 +522,13 @@ export async function getBreakdown(projectId) {
   if (!res.ok) throw new Error("Failed to load breakdown");
   return res.json();
 }
+
+// Read-only, tab-scoped AI summary/alerts/recommendations (the "Lily Everywhere"
+// layer). tab is "schedule" | "stripboard" | "team"; dayId narrows stripboard to
+// one shoot day. Never writes anything — actual changes still go through chat.
+export async function getInsights(projectId, tab, dayId) {
+  const qs = dayId ? `?day_id=${encodeURIComponent(dayId)}` : "";
+  const res = await fetch(`${BASE}/api/insights/${tab}/${projectId}${qs}`);
+  if (!res.ok) throw new Error("Failed to load AI insights");
+  return res.json();
+}
