@@ -24,31 +24,46 @@ Return ONLY valid JSON with this shape:
   "weather": "typical weather / climate notes or null",
   "nearby_safety": "nearest hospital / police / emergency notes or null",
   "constraints": ["notable constraint or logistics note", ...],
-  "sources": ["url", ...]
+  "sources": ["url", ...],
+  "answer_to_question": "a direct answer to the SPECIFIC QUESTION below, using
+    the excerpts, or null if no specific question was asked or the excerpts
+    don't cover it"
 }
 
 LOCATION: {loc}
+
+SPECIFIC QUESTION (may be none): {question}
 
 EXCERPTS:
 {excerpts}
 """
 
 
-def research_location(name: str, address: str | None = None) -> dict:
+def research_location(name: str, address: str | None = None, question: str | None = None) -> dict:
     loc = name if not address else f"{name}, {address}"
+
+    queries = [
+        f"{name} filming permit rules",
+        f"{name} opening hours",
+        f"{name} nearest hospital police station",
+    ]
+    objective = (
+        f"Film production logistics for {loc}: operating hours, "
+        f"filming permit rules and fees, typical weather, and the nearest "
+        f"hospital and police station."
+    )
+    # A specific question (e.g. "is there parking nearby?", "is it noisy at
+    # night?") gets folded in as its own search query and objective clause,
+    # on top of the standard checklist — so asking something ad-hoc doesn't
+    # replace the baseline research, it adds to it.
+    if question:
+        queries.append(f"{loc} {question}")
+        objective += f" Also specifically: {question}"
 
     # --- Parallel Search (partner integration, runtime call) ---
     result = _PARALLEL.search(
-        objective=(
-            f"Film production logistics for {loc}: operating hours, "
-            f"filming permit rules and fees, typical weather, and the nearest "
-            f"hospital and police station."
-        ),
-        search_queries=[
-            f"{name} filming permit rules",
-            f"{name} opening hours",
-            f"{name} nearest hospital police station",
-        ],
+        objective=objective,
+        search_queries=queries,
         mode="fast",
         max_chars_total=6000,
     )
@@ -66,7 +81,11 @@ def research_location(name: str, address: str | None = None) -> dict:
     raw_excerpts = "\n".join(excerpt_lines) if excerpt_lines else "No results found."
 
     # --- Gemini distills the raw excerpts into structured facts ---
-    prompt = _DISTILL_PROMPT.replace("{loc}", loc).replace("{excerpts}", raw_excerpts[:12000])
+    prompt = (
+        _DISTILL_PROMPT.replace("{loc}", loc)
+        .replace("{question}", question or "none")
+        .replace("{excerpts}", raw_excerpts[:12000])
+    )
     resp = _genai.models.generate_content(
         model=_MODEL,
         contents=prompt,

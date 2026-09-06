@@ -200,7 +200,7 @@ class ExecuteIn(BaseModel):
 @router.post("/execute")
 def execute(body: ExecuteIn, session: Session = Depends(get_session)):
     from ..routes.people import add_person as _add_person, PersonIn
-    from ..routes.plan import add_location as _add_location, LocationIn, research as _research
+    from ..routes.plan import add_location as _add_location, LocationIn, research as _research, ResearchIn as _ResearchIn
     from ..routes.schedule import add_candidate as _add_candidate, AddCandidateIn, lock_date as _lock_date, LockIn
     from ..routes.schedule import remind as _remind, RemindIn, send_requests as _send_requests, SendIn
 
@@ -224,7 +224,7 @@ def execute(body: ExecuteIn, session: Session = Depends(get_session)):
         loc = loc_by_name.get(a["location_name"].lower())
         if not loc:
             raise HTTPException(status_code=404, detail="Location not confirmed yet.")
-        return _research(loc.id, session)
+        return _research(loc.id, _ResearchIn(question=a.get("question")), session=session)
     if name == "add_candidate_date":
         day = day_by_num.get(a["day_number"])
         if not day:

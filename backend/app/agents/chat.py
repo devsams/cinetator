@@ -37,10 +37,23 @@ TOOLS = [
         ),
         types.FunctionDeclaration(
             name="research_location",
-            description="Run Parallel web research on a confirmed location to get hours, permits, weather, and safety info.",
+            description=(
+                "Run Parallel web research on a confirmed location. Always covers "
+                "hours, permits, weather, and nearby safety. If the user asks something "
+                "more specific about the location (parking, noise, nearby vendors, "
+                "anything not already in the standard checklist), pass it as `question` "
+                "so the search covers that too — don't answer a location question from "
+                "general knowledge, always research it."
+            ),
             parameters={
                 "type": "OBJECT",
-                "properties": {"location_name": {"type": "STRING"}},
+                "properties": {
+                    "location_name": {"type": "STRING"},
+                    "question": {
+                        "type": "STRING",
+                        "description": "The user's specific question about this location, if any, verbatim.",
+                    },
+                },
                 "required": ["location_name"],
             },
         ),
@@ -165,6 +178,11 @@ Rules:
   fabricate a tool call for something not requested.
 - check_readiness is read-only — it answers a question, it never needs confirmation.
   All other tools change real data and must be confirmed by the user before running.
+- If the user asks anything about a confirmed location (parking, noise, hours, permits,
+  weather, whatever) that you don't already know from CURRENT PRODUCTION STATE, call
+  research_location with that question rather than guessing — it still requires
+  confirmation like any other write, since it costs a real web search and saves over
+  the location's existing research.
 - Never claim an action was completed — the system will execute it only after the
   user confirms; you are only proposing it.
 - If information is missing or ambiguous (e.g. no email on file, unknown person),

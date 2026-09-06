@@ -17,6 +17,10 @@ class LocationIn(BaseModel):
     address: Optional[str] = None
 
 
+class ResearchIn(BaseModel):
+    question: Optional[str] = None
+
+
 def _serialize_loc(l: Location) -> dict:
     return {
         "id": l.id,
@@ -73,11 +77,12 @@ def add_location(body: LocationIn, session: Session = Depends(get_session)):
 
 
 @router.post("/locations/{location_id}/research")
-def research(location_id: str, session: Session = Depends(get_session)):
+def research(location_id: str, body: Optional[ResearchIn] = None, session: Session = Depends(get_session)):
     loc = session.get(Location, location_id)
     if not loc:
         raise HTTPException(status_code=404, detail="Location not found.")
-    data = research_location(loc.name, loc.address)
+    question = body.question if body else None
+    data = research_location(loc.name, loc.address, question)
     loc.research_json = json.dumps(data)
     session.add(loc); session.commit(); session.refresh(loc)
     return _serialize_loc(loc)

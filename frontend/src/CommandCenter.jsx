@@ -8,7 +8,7 @@ function actionLabel(name, args) {
   switch (name) {
     case "add_person": return `Add ${args.name} (${args.role_type}${args.character ? " — " + args.character : ""})`;
     case "confirm_location": return `Confirm location: ${args.name}`;
-    case "research_location": return `Research ${args.location_name} with Parallel`;
+    case "research_location": return `Research ${args.location_name} with Parallel${args.question ? ` — "${args.question}"` : ""}`;
     case "add_candidate_date": return `Add ${args.date} as a candidate date for Day ${args.day_number}`;
     case "lock_date": return `Lock ${args.date} for Day ${args.day_number}`;
     case "send_reminder": return `Send a reminder to: ${(args.names || []).join(", ")}`;
@@ -95,8 +95,17 @@ export default function CommandCenter({ project }) {
     if (!pending) return;
     setSending(true); setError("");
     try {
-      await executeChatAction(projectId, pending.name, pending.args);
-      setMessages((m) => [...m, { role: "assistant", text: `✓ Done — ${actionLabel(pending.name, pending.args)}.` }]);
+      const result = await executeChatAction(projectId, pending.name, pending.args);
+      let text = `✓ Done — ${actionLabel(pending.name, pending.args)}.`;
+      // research_location's whole point when a question was asked is the
+      // answer — surface it here rather than leaving the user to go dig it
+      // out of the Plan tab themselves.
+      const r = pending.name === "research_location" ? result?.research : null;
+      if (r) {
+        if (pending.args.question && r.answer_to_question) text += `\n\n${r.answer_to_question}`;
+        else if (r.summary) text += `\n\n${r.summary}`;
+      }
+      setMessages((m) => [...m, { role: "assistant", text }]);
     } catch (e) {
       setMessages((m) => [...m, { role: "assistant", text: `That didn't work: ${e.message}` }]);
     } finally { setPending(null); setSending(false); }
