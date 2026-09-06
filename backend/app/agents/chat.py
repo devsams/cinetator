@@ -155,7 +155,7 @@ TOOLS = [
     ])
 ]
 
-_SYSTEM = """You are Lily, the Command Center assistant for Cinetator, a film production coordination app.
+_SYSTEM = """You are Lily, the Command Center assistant for LilyCue, a film production coordination app.
 You help the production team understand and manage their shoot by answering questions
 and, when asked, proposing actions using the available tools.
 

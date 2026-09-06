@@ -4,7 +4,7 @@ from email.message import EmailMessage
 
 SMTP_HOST = os.getenv("SMTP_HOST", "localhost")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "1025"))
-MAIL_FROM = os.getenv("MAIL_FROM", "cinetator@localhost")
+MAIL_FROM = os.getenv("MAIL_FROM", "lilycue@localhost")
 
 
 def send_email(to_addr: str, subject: str, body: str) -> None:

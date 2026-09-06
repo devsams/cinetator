@@ -49,7 +49,7 @@ export default function App() {
     <div>
       <div className="ct-nav" style={{ justifyContent: "flex-start", gap: 28 }}>
         <div className="ct-logo" onClick={() => setView("home")}>
-          <span className="mk" /> CINE<em>TATOR</em>
+          <span className="mk" /> LILY<em>CUE</em>
         </div>
         <div className="ct-navlinks">
           <button className={`ct-nl ${view === "home" ? "active" : ""}`} onClick={() => setView("home")}>Productions</button>

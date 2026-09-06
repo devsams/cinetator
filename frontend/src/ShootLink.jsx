@@ -22,7 +22,7 @@ export default function ShootLink({ token }) {
   }
   useEffect(() => { load(); }, [token]);
 
-  if (error) return <Shell><Center><div className="disp" style={{ fontSize: 22 }}>Cinetator</div><p style={{ color: "#ff5c5c", marginTop: 10 }}>{error}</p></Center></Shell>;
+  if (error) return <Shell><Center><div className="disp" style={{ fontSize: 22 }}>LilyCue</div><p style={{ color: "#ff5c5c", marginTop: 10 }}>{error}</p></Center></Shell>;
   if (!data) return <Shell><Center><p style={{ color: "#74777f" }}>Loading…</p></Center></Shell>;
 
   const { person, days } = data;
