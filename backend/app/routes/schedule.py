@@ -559,11 +559,15 @@ def readiness(shoot_day_id: str, session: Session = Depends(get_session)):
 
     items = []
 
-    # Location
+    # Location — "confirmed" once a location is assigned to the day. Whether
+    # Parallel research has been run on it is a separate, optional enrichment
+    # step (hours/permits/weather/safety) and shouldn't block shoot readiness
+    # on its own; it's tracked as its own "Researched"/"Not researched" badge
+    # elsewhere (Plan tab, Storyboard) rather than counted against readiness.
     items.append({
         "category": "Location",
         "name": loc.name if loc else "No location set",
-        "status": "confirmed" if (loc and loc.research_json) else ("pending" if loc else "missing"),
+        "status": "confirmed" if loc else "missing",
     })
 
     # Cast needed this day (from breakdown scenes tagged to this day)
