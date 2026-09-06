@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { listDays, autoDays, addDay, updateDay, deleteDay, listLocations } from "./api";
 import SendPanel from "./SendPanel";
 import Decide from "./Decide";
+import AiLayer from "./AiLayer";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 
@@ -10,12 +11,14 @@ export default function Schedule({ project }) {
   const [days, setDays] = useState([]);
   const [locations, setLocations] = useState([]);
   const [error, setError] = useState("");
+  const [aiTick, setAiTick] = useState(0);
 
   async function refresh() {
     if (!projectId) return;
     try {
       const [d, l] = await Promise.all([listDays(projectId), listLocations(projectId)]);
       setDays(d); setLocations(l);
+      setAiTick((t) => t + 1);
     } catch (e) { setError(e.message); }
   }
   useEffect(() => { refresh(); }, [projectId]);
@@ -37,6 +40,8 @@ export default function Schedule({ project }) {
 
   return (
     <div style={{ display: "grid", gap: 24 }}>
+      <AiLayer projectId={projectId} tab="schedule" refreshKey={aiTick} />
+
       <section style={card}>
         <h2 style={{ margin: 0 }}>2 · Schedule</h2>
         <p style={{ color: "#b6b9c0", marginTop: 4 }}>

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { listStrips, autoPopulateStrips, addStrip, updateStrip, deleteStrip, reorderStrips, setCrewCalls } from "./api";
 import { listDays } from "./api";
 import { listPeople } from "./api";
+import AiLayer from "./AiLayer";
 
 function stripColor(intext, daynight) {
   if (intext === "INT" && daynight === "DAY") return { border: "#b8bcc4", tag: "#e8e9ec", tagText: "#1a1b1e", label: "INT DAY" };
@@ -121,11 +122,18 @@ export default function Stripboard({ project }) {
     </div>;
   }
 
+  // Recomputes automatically whenever the active day or its strips change —
+  // every mutation below already flows through setStrips, so no separate
+  // "did something change" bookkeeping is needed to keep this in sync.
+  const aiRefreshKey = `${activeDay}:${strips.map((s) => `${s.id}-${s.duration_mins}`).join(",")}`;
+
   return (
     <div>
       <div className="ct-ptitle"><span className="num">05</span>Stripboard</div>
       <p className="ct-psub">Order the day's scenes, insert breaks, and see the running clock update live.</p>
       {error && <p style={{ color: "#ff5c5c" }}>{error}</p>}
+
+      <AiLayer projectId={projectId} tab="stripboard" dayId={activeDay} refreshKey={aiRefreshKey} />
 
       {days.length > 0 && (
         <div style={{ display: "flex", gap: 8, margin: "10px 0 18px", flexWrap: "wrap" }}>

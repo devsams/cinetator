@@ -108,7 +108,7 @@ export default function CallSheet({ project }) {
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 10 }}>
         <div>
-          <div className="ct-ptitle"><span className="num">06</span>Call Sheet</div>
+          <div className="ct-ptitle"><span className="num">07</span>Call Sheet</div>
           <p className="ct-psub" style={{ marginBottom: 0 }}>The one-page document crew and cast rely on. Pulled live from Stripboard, People, and Plan.</p>
         </div>
         <button className="ct-btn dark" onClick={() => window.print()}>Print / Export PDF</button>

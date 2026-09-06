@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { listNotes, resolveNote, replyToNote } from "./api";
+import AiLayer from "./AiLayer";
 
 export default function Team({ project }) {
   const projectId = project?.project_id;
@@ -37,9 +38,11 @@ export default function Team({ project }) {
 
   return (
     <div>
-      <div className="ct-ptitle"><span className="num">08</span>Team</div>
+      <div className="ct-ptitle"><span className="num">09</span>Team</div>
       <p className="ct-psub">Notes from cast, crew, and location contacts — reply here and they'll see it on their page.</p>
       {error && <p style={{ color: "#ff5c5c" }}>{error}</p>}
+
+      <AiLayer projectId={projectId} tab="team" refreshKey={notes.length + ":" + notes.filter((n) => n.reply_text).length} />
 
       {notes.length === 0 && (
         <div className="ct-card" style={{ color: "#74777f", fontSize: 13.5 }}>No notes yet.</div>

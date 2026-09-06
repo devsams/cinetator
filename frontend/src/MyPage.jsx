@@ -38,7 +38,7 @@ export default function MyPage({ project }) {
 
   return (
     <div>
-      <div className="ct-ptitle"><span className="num">07</span>My Page</div>
+      <div className="ct-ptitle"><span className="num">08</span>My Page</div>
       <p className="ct-psub">See exactly what a cast, crew, or location contact sees — scenes, call time, logistics, and a way to reach production.</p>
 
       <div className="ct-card">

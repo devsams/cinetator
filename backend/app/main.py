@@ -6,7 +6,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 
 from .db import init_db
-from .routes import breakdown, people, plan, schedule, link, projects, chat, stripboard
+from .routes import breakdown, people, plan, schedule, link, projects, chat, stripboard, insights
 
 logger = logging.getLogger("cinetator")
 
@@ -69,3 +69,4 @@ app.include_router(link.router)
 app.include_router(projects.router)
 app.include_router(chat.router)
 app.include_router(stripboard.router)
+app.include_router(insights.router)
