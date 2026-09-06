@@ -156,7 +156,15 @@ def chat(body: ChatIn, session: Session = Depends(get_session)):
     state = _build_state(session, body.project_id)
     result = chat_turn(state, history, body.message)
 
-    # check_readiness is read-only: execute immediately and fold the answer into the reply
+    # check_readiness is read-only: execute immediately and REPLACE the reply
+    # with the direct answer. (Previously this appended the answer onto
+    # chat_turn()'s generic "I can check readiness — want me to go ahead?"
+    # fallback text, so the message read as an unanswered yes/no question
+    # with its own answer glued on. The user's "yes" in response was then
+    # treated as a brand-new instruction, which re-triggered check_readiness
+    # and produced the exact same confusing message — an infinite loop.
+    # check_readiness never needs confirmation, so there's no question to
+    # begin with; the reply should just be the answer.)
     tool_call = result.get("tool_call")
     if tool_call and tool_call["name"] == "check_readiness":
         from ..models import ShootDay as _SD
@@ -168,9 +176,9 @@ def chat(body: ChatIn, session: Session = Depends(get_session)):
             from .schedule import readiness as _readiness
             rd = _readiness(day.id, session)
             blocking_txt = ", ".join(f"{b['name']} ({b['status']})" for b in rd["blocking"]) or "nothing"
-            result["reply"] = (result.get("reply", "") + f"\n\nDay {day_number} is {rd['readiness_pct']}% ready. Blocking: {blocking_txt}.").strip()
+            result["reply"] = f"Day {day_number} is {rd['readiness_pct']}% ready. Blocking: {blocking_txt}."
         else:
-            result["reply"] = (result.get("reply", "") + f"\n\nI couldn't find Day {day_number}.").strip()
+            result["reply"] = f"I couldn't find Day {day_number}."
         result["tool_call"] = None  # already answered, nothing to confirm
 
     # save the assistant's reply
