@@ -183,6 +183,10 @@ Rules:
   research_location with that question rather than guessing — it still requires
   confirmation like any other write, since it costs a real web search and saves over
   the location's existing research.
+- When calling research_location, confirm_location, send_reminder, send_outreach,
+  reply_to_note, or mark_arrived, always pass the person's or location's name exactly
+  as it appears in CURRENT PRODUCTION STATE (confirmed_locations / people) — not your
+  own shorthand for it — even if the user referred to it more casually.
 - Never claim an action was completed — the system will execute it only after the
   user confirms; you are only proposing it.
 - If information is missing or ambiguous (e.g. no email on file, unknown person),

@@ -12,6 +12,27 @@ from ..agents.chat import chat_turn
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
 
+def _fuzzy_lookup(name: str, by_name: dict):
+    """Look up a chat tool-call argument (a person or location name Gemini
+    generated) against a {lowercased-stored-name: record} map.
+
+    Exact match first. If that misses, fall back to a unique substring match
+    in either direction: Gemini sees the real confirmed names in the
+    CURRENT PRODUCTION STATE it's given, but still sometimes echoes back the
+    user's own shorthand instead (e.g. "research Ana's apartment" -> passes
+    location_name "Ana's Apartment" when the location was actually confirmed
+    as "Ana's Apartment - Kitchen"). That's a real, confirmed location; it
+    just doesn't match by strict equality. Only resolve when exactly one
+    candidate matches, so a genuinely ambiguous or unconfirmed name still
+    correctly falls through to "not found" instead of guessing.
+    """
+    needle = name.lower().strip()
+    if needle in by_name:
+        return by_name[needle]
+    candidates = [v for k, v in by_name.items() if needle in k or k in needle]
+    return candidates[0] if len(candidates) == 1 else None
+
+
 def _loads(s): return json.loads(s) if s else []
 
 
@@ -221,9 +242,12 @@ def execute(body: ExecuteIn, session: Session = Depends(get_session)):
     if name == "confirm_location":
         return _add_location(LocationIn(project_id=pid, name=a["name"], address=a.get("address")), session)
     if name == "research_location":
-        loc = loc_by_name.get(a["location_name"].lower())
+        loc = _fuzzy_lookup(a["location_name"], loc_by_name)
         if not loc:
-            raise HTTPException(status_code=404, detail="Location not confirmed yet.")
+            raise HTTPException(
+                status_code=404,
+                detail=f"\"{a['location_name']}\" isn't a confirmed location yet — confirm it in the Plan tab first.",
+            )
         return _research(loc.id, _ResearchIn(question=a.get("question")), session=session)
     if name == "add_candidate_date":
         day = day_by_num.get(a["day_number"])
@@ -236,8 +260,8 @@ def execute(body: ExecuteIn, session: Session = Depends(get_session)):
             raise HTTPException(status_code=404, detail="Shoot day not found.")
         return _lock_date(day.id, LockIn(date=a["date"]), session)
     if name in ("send_reminder", "send_outreach"):
-        names = [n.lower() for n in a.get("names", [])]
-        ids = [p.id for p in people if p.name.lower() in names]
+        matched = [_fuzzy_lookup(n, by_name) for n in a.get("names", [])]
+        ids = list({p.id for p in matched if p})
         if not ids:
             raise HTTPException(status_code=400, detail="No matching people found.")
         if name == "send_reminder":
@@ -247,7 +271,7 @@ def execute(body: ExecuteIn, session: Session = Depends(get_session)):
     if name == "reply_to_note":
         from ..models import Note
         from .link import ReplyIn as _ReplyIn, reply_to_note as _reply_to_note
-        person = by_name.get(a["person_name"].lower())
+        person = _fuzzy_lookup(a["person_name"], by_name)
         if not person:
             raise HTTPException(status_code=404, detail="Person not found.")
         note = session.exec(
@@ -260,7 +284,7 @@ def execute(body: ExecuteIn, session: Session = Depends(get_session)):
 
     if name == "mark_arrived":
         from .schedule import set_arrival as _set_arrival, ArrivalIn as _ArrivalIn
-        person = by_name.get(a["person_name"].lower())
+        person = _fuzzy_lookup(a["person_name"], by_name)
         day = day_by_num.get(a.get("day_number"))
         if not person or not day:
             raise HTTPException(status_code=404, detail="Person or day not found.")
