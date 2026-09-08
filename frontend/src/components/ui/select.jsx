@@ -64,7 +64,15 @@ function SelectContent({
   sideOffset = 4,
   align = "center",
   alignOffset = 0,
-  alignItemWithTrigger = true,
+  // Aligning the matched item over the trigger (Base UI's native-<select>-style
+  // default) makes an unopened dropdown's single/first item render in the exact
+  // same spot as the closed trigger. That makes it look like a value was picked
+  // on the click that only opened the list — a second click (on the item) is
+  // still required to actually select it, and clicking anywhere else instead
+  // just closes the list with nothing chosen, silently reverting to the
+  // placeholder. Popping the list below the trigger like an ordinary dropdown
+  // menu keeps "open" and "selected" visually distinct.
+  alignItemWithTrigger = false,
   ...props
 }) {
   return (
