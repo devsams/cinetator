@@ -5,6 +5,19 @@ import {
 import { onAskLily } from "./lilyBus";
 import lilyLogo from "./assets/lily-logo.png";
 
+function asText(v) {
+  if (v == null) return "";
+  if (typeof v === "string" || typeof v === "number") return v;
+  if (Array.isArray(v)) return v.map(asText).filter(Boolean).join("; ");
+  if (typeof v === "object") {
+    return Object.entries(v)
+      .filter(([, val]) => val)
+      .map(([k, val]) => `${k.replace(/_/g, " ")}: ${asText(val)}`)
+      .join("; ");
+  }
+  return String(v);
+}
+
 function actionLabel(name, args) {
   switch (name) {
     case "add_person": return `Add ${args.name} (${args.role_type}${args.character ? " — " + args.character : ""})`;
@@ -103,8 +116,11 @@ export default function CommandCenter({ project }) {
       // out of the Plan tab themselves.
       const r = pending.name === "research_location" ? result?.research : null;
       if (r) {
-        if (pending.args.question && r.answer_to_question) text += `\n\n${r.answer_to_question}`;
-        else if (r.summary) text += `\n\n${r.summary}`;
+        // The backend normalizes these to plain strings, but guard anyway —
+        // if either ever comes back as an object, string-concatenating it
+        // directly would render a literal "[object Object]" in the chat.
+        if (pending.args.question && r.answer_to_question) text += `\n\n${asText(r.answer_to_question)}`;
+        else if (r.summary) text += `\n\n${asText(r.summary)}`;
       }
       setMessages((m) => [...m, { role: "assistant", text }]);
     } catch (e) {

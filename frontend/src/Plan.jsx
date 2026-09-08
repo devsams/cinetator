@@ -119,7 +119,7 @@ export default function Plan({ project }) {
           {loc.research && (
             <div style={{ marginTop: 16, display: "grid", gap: 14 }}>
               {loc.research.summary && (
-                <p style={{ margin: 0, color: "#e6e8ec", fontSize: 13.5, lineHeight: 1.55 }}>{loc.research.summary}</p>
+                <p style={{ margin: 0, color: "#e6e8ec", fontSize: 13.5, lineHeight: 1.55 }}>{asText(loc.research.summary)}</p>
               )}
               {loc.research.hours && <F label="Hours" v={loc.research.hours} />}
               {loc.research.permits && <F label="Permits" v={loc.research.permits} />}
@@ -130,7 +130,7 @@ export default function Plan({ project }) {
                   <span className="ct-lbl">Constraints</span>
                   <ul style={{ margin: "6px 0 0", paddingLeft: 18, color: "#b6b9c0" }}>
                     {loc.research.constraints.map((c, i) => (
-                      <li key={i} style={{ fontSize: 13, marginBottom: 3, lineHeight: 1.5 }}>{c}</li>
+                      <li key={i} style={{ fontSize: 13, marginBottom: 3, lineHeight: 1.5 }}>{asText(c)}</li>
                     ))}
                   </ul>
                 </div>
@@ -157,9 +157,27 @@ function F({ label, v }) {
   return (
     <div>
       <span className="ct-lbl">{label}</span>
-      <div style={{ fontSize: 13.5, whiteSpace: "pre-wrap", color: "#b6b9c0", lineHeight: 1.55, marginTop: 4 }}>{v}</div>
+      <div style={{ fontSize: 13.5, whiteSpace: "pre-wrap", color: "#b6b9c0", lineHeight: 1.55, marginTop: 4 }}>{asText(v)}</div>
     </div>
   );
+}
+
+// The backend now normalizes research fields to plain strings, but data
+// researched before that fix is already saved in the database as nested
+// objects — and React refuses to render a raw object as a child at all
+// (crashes the whole tree, no error boundary). Rendering through this
+// instead of the raw value keeps old and new data on-screen either way.
+function asText(v) {
+  if (v == null) return "";
+  if (typeof v === "string" || typeof v === "number") return v;
+  if (Array.isArray(v)) return v.map(asText).filter(Boolean).join("; ");
+  if (typeof v === "object") {
+    return Object.entries(v)
+      .filter(([, val]) => val)
+      .map(([k, val]) => `${k.replace(/_/g, " ")}: ${asText(val)}`)
+      .join("; ");
+  }
+  return String(v);
 }
 
 const detRow = {

@@ -104,4 +104,36 @@ def research_location(name: str, address: str | None = None, question: str | Non
     # ensure sources present even if the model omitted them
     if not data.get("sources"):
         data["sources"] = sources[:5]
+
+    # The prompt above documents summary/hours/permits/weather/nearby_safety/
+    # answer_to_question as plain strings, but response_mime_type="application/
+    # json" only guarantees valid JSON, not that shape — for a location with
+    # rich source material (e.g. formal permit rules) Gemini sometimes nests
+    # a field into an object instead (permits -> {requirements, cost,
+    # contact, ...}). The frontend renders these fields as plain text, and
+    # React crashes outright (blank screen, no error boundary) if it's ever
+    # handed a raw object as a child. Flatten to text here, at the source,
+    # rather than trusting the model's shape.
+    for field in ("summary", "hours", "permits", "weather", "nearby_safety", "answer_to_question"):
+        if field in data:
+            data[field] = _flatten(data[field])
+    if isinstance(data.get("constraints"), list):
+        data["constraints"] = [c for c in (_flatten(c) for c in data["constraints"]) if c]
+
     return data
+
+
+def _flatten(value):
+    """Coerce a value that should be plain text (but may have come back as a
+    nested object or list) into a readable string, or None if empty."""
+    if value is None:
+        return None
+    if isinstance(value, str):
+        return value
+    if isinstance(value, dict):
+        parts = [f"{k.replace('_', ' ').capitalize()}: {v}" for k, v in value.items() if v]
+        return "; ".join(parts) if parts else None
+    if isinstance(value, list):
+        parts = [p for p in (_flatten(v) for v in value) if p]
+        return "; ".join(parts) if parts else None
+    return str(value)
