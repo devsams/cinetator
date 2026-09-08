@@ -3,6 +3,7 @@ import {
   listChatSessions, newChatSession, getChatMessages, sendChat, executeChatAction,
 } from "./api";
 import { onAskLily } from "./lilyBus";
+import lilyLogo from "./assets/lily-logo.png";
 
 function actionLabel(name, args) {
   switch (name) {
@@ -120,14 +121,14 @@ export default function CommandCenter({ project }) {
   return (
     <>
       <button style={bubbleBtn} onClick={() => setOpen((v) => !v)} title={open ? "Close" : "Ask Lily"}>
-        {open ? "✕" : "💬"}
+        {open ? "✕" : <img src={lilyLogo} alt="Lily" style={bubbleLogoImg} />}
       </button>
 
       {open && (
         <div style={chatWindow}>
           <div style={chatHeader}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={avatarDot}>L</span>
+              <span style={avatarDot}><img src={lilyLogo} alt="Lily" style={avatarLogoImg} /></span>
               <div className="disp" style={{ fontSize: 15 }}>Lily</div>
             </div>
             <div style={{ display: "flex", gap: 6 }}>
@@ -185,16 +186,19 @@ export default function CommandCenter({ project }) {
 
 const bubbleBtn = {
   position: "fixed", bottom: 24, right: 24, width: 56, height: 56, borderRadius: "50%",
-  background: "#f5c518", color: "#0d0d0e", border: "none", fontSize: 22, fontWeight: 800,
-  cursor: "pointer", zIndex: 50, boxShadow: "0 4px 16px rgba(0,0,0,.4)",
+  background: "#161618", color: "#f5c518", border: "1px solid #2e2a16", fontSize: 22, fontWeight: 800,
+  cursor: "pointer", zIndex: 50, boxShadow: "0 4px 16px rgba(0,0,0,.4), 0 0 0 1px rgba(245,197,24,.15)",
+  display: "flex", alignItems: "center", justifyContent: "center",
 };
+const bubbleLogoImg = { width: 24, height: "auto", display: "block" };
+const avatarLogoImg = { width: 14, height: "auto", display: "block" };
 const chatWindow = {
   position: "fixed", bottom: 92, right: 24, width: 340, maxHeight: "70vh", background: "#161618",
   border: "1px solid #2a2a2e", borderRadius: 16, boxShadow: "0 8px 32px rgba(0,0,0,.5)",
   zIndex: 49, display: "flex", flexDirection: "column", overflow: "hidden",
 };
 const chatHeader = { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 16px", borderBottom: "1px solid #2a2a2e" };
-const avatarDot = { width: 26, height: 26, borderRadius: "50%", background: "#f5c518", color: "#0d0d0e", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 12, fontFamily: "Oswald, sans-serif" };
+const avatarDot = { width: 26, height: 26, borderRadius: "50%", background: "#0d0d0e", border: "1px solid #2e2a16", color: "#0d0d0e", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 12, fontFamily: "Oswald, sans-serif" };
 const miniBtn = { background: "#242428", border: "none", borderRadius: 7, padding: "5px 9px", fontSize: 11, color: "#b6b9c0", cursor: "pointer" };
 const histRow = { padding: "10px 4px", borderBottom: "1px solid #2a2a2e", cursor: "pointer" };
 const msgList = { flex: 1, overflowY: "auto", padding: "12px 14px", display: "flex", flexDirection: "column", gap: 10, maxHeight: 380 };
